@@ -4,10 +4,10 @@ let
 in (pkgs.haskell.packages.ghc802.override {
    overrides = self: super: {
      dhall = self.callCabal2nix "dhall" (pkgs.fetchFromGitHub {
-         owner = "ramirez7";
+         owner = "dhall-lang";
          repo = "dhall-haskell";
-         rev = "8cdb0f08c72f43b4f7006ef393fc3ec94ea3844e";
-         sha256 = "1w0q1f5sd6yj0zpyjl75ws31rkw4cg9p1dq5kncnc54kifirx349";
+         rev = "755f91b6e0ed3a2c87c434a2fb2d927039a3ffdc";
+         sha256 = "0g91gv8dd73715mcn7zlmckvlx9yccg8nbr7kxy2qnbvdfdjdj7w";
        }) {};
 
    };
