@@ -17,13 +17,32 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:
-    Dhall.Ord,
-    Dhall.Ord.Core,
-    Dhall.Ord.Parser,
-    Dhall.Ord.TypeCheck
-  -- other-modules:
+    Dhall.Extensible.Core
+
+    Dhall.Ord.Double.Core
+    Dhall.Ord.Double.Parser
+    Dhall.Ord.Double.TypeCheck
+    Dhall.Ord.Integer.Core
+    Dhall.Ord.Integer.Parser
+    Dhall.Ord.Integer.TypeCheck
+    Dhall.Ord.Natural.Core
+    Dhall.Ord.Natural.Parser
+    Dhall.Ord.Natural.TypeCheck
+
+    Dhall.Time.Core
+  other-modules:
+    Dhall.ParserUtils
   -- other-extensions:
-  build-depends:       base >=4.9 && <4.10, dhall
+  build-depends:
+      base >=4.9 && <4.10
+    , dhall
+    , text-format
+    , text
+    , trifecta
+    , parsers
+    , union
+    , transformers
+    , time
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options: -Wall
@@ -37,8 +56,13 @@ test-suite spec
   build-depends:
       base >=4.9 && <4.10
     , hspec
+    , trifecta
+    , interpolate
 
     , dhall
     , dhall-extensions
   other-modules:
-    Dhall.Ord.Core.OrdCoreSpec
+    SpecUtils
+    Dhall.Ord.Double.TheSpec
+    Dhall.Ord.Integer.TheSpec
+    Dhall.Ord.Natural.TheSpec
