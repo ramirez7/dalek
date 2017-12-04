@@ -8,8 +8,6 @@ module Dhall.Ord.Double.TheSpec (spec) where
 import           SpecUtils
 
 import           Data.String.Interpolate    (i)
-import qualified Text.Trifecta.Parser       as Tri
-import qualified Text.Trifecta.Result       as Tri
 
 import qualified Dhall.Context              as Dh
 import qualified Dhall.Core                 as Dh
@@ -26,42 +24,32 @@ import qualified Dhall.Ord.Double.TypeCheck as DhDoubleOrd
 spec :: Spec
 spec = describe "end-to-end" $ do
   it "should work with literals" $ do
-    let expr (x :: Double) = checked [i|
+    let expr (x :: Double) = checked DhDoubleOrd.parser DhDoubleOrd.typer [i|
 
     if Double/LT #{x} 3.0 then "#t" else "#f"
 
     |]
-    fmap ordNormalize (expr 3.0) `shouldBeIO` Dh.TextLit "#f"
-    fmap ordNormalize (expr 2.0) `shouldBeIO` Dh.TextLit "#t"
+    fmap normalize (expr 3.0) `shouldBeIO` Dh.TextLit "#f"
+    fmap normalize (expr 2.0) `shouldBeIO` Dh.TextLit "#t"
   it "should work with application" $ do
-    let expr (x :: Double) = checked [i|
+    let expr (x :: Double) = checked DhDoubleOrd.parser DhDoubleOrd.typer [i|
 
     (\\(x : Double) -> if Double/LT x 3.0 then "#t" else "#f") #{x}
 
     |]
 
-    fmap ordNormalize (expr 3.0) `shouldBeIO` Dh.TextLit "#f"
-    fmap ordNormalize (expr 2.0) `shouldBeIO` Dh.TextLit "#t"
+    fmap normalize (expr 3.0) `shouldBeIO` Dh.TextLit "#f"
+    fmap normalize (expr 2.0) `shouldBeIO` Dh.TextLit "#t"
   it "should handle poorly-typed expressions" $ do
-    expr <- parsed [i|
+    expr <- parsed DhDoubleOrd.parser [i|
 
     if Double/LT "2.0" 3.0 then "#t" else "#f"
 
     |]
-    shouldBeLeft $ ordTypeOf expr
+    shouldBeLeft $ typeOf expr
 
-ordNormalize :: Dh.Expr Dh.Src DhDoubleOrd -> Dh.Expr Dh.Src DhDoubleOrd
-ordNormalize = Dh.normalizeWith DhDoubleOrd.normalizer
+normalize :: Dh.Expr Dh.Src DhDoubleOrd -> Dh.Expr Dh.Src DhDoubleOrd
+normalize = Dh.normalizeWith DhDoubleOrd.normalizer
 
-ordTypeOf :: Dh.Expr Dh.Src DhDoubleOrd -> Either (Dh.TypeError Dh.Src DhDoubleOrd) (Dh.Expr Dh.Src DhDoubleOrd)
-ordTypeOf = Dh.typeWithA DhDoubleOrd.typer Dh.empty
-
-parsed :: String -> IO (Dh.Expr Dh.Src DhDoubleOrd)
-parsed s = case Tri.parseString (Dh.unParser $ Dh.exprA DhDoubleOrd.parser) mempty s of
-  Tri.Success a   -> pure a
-  Tri.Failure err -> expectationFailure $ "Bad Parse: " ++ show err
-
-checked :: String -> IO (Dh.Expr Dh.Src DhDoubleOrd)
-checked s = do
-  expr <- parsed s
-  ordTypeOf expr `asRight` (pure . const expr)
+typeOf :: Dh.Expr Dh.Src DhDoubleOrd -> Either (Dh.TypeError Dh.Src DhDoubleOrd) (Dh.Expr Dh.Src DhDoubleOrd)
+typeOf = Dh.typeWithA DhDoubleOrd.typer Dh.empty

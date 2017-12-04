@@ -13,6 +13,7 @@ import qualified Data.Text.Lazy.Builder  as TLB
 import qualified Text.Parser.Char        as TP
 import           Text.Parser.Combinators ((<?>))
 import qualified Text.Parser.Combinators as TP
+import qualified Text.Parser.Token       as TP
 
 reserved :: Data.Text.Text -> Parser ()
 reserved x = do _ <- TP.text x; whitespace
@@ -75,10 +76,16 @@ whitespaceChunk =
 whitespace :: Parser ()
 whitespace = TP.skipMany whitespaceChunk
 
-reservedOneOf :: (Buildable a, Enum a, Bounded a) => Parser a
-reservedOneOf = TP.choice $ fmap reservedA [minBound..maxBound]
+reservedEnum :: (Buildable a, Enum a, Bounded a) => Parser a
+reservedEnum = TP.choice $ fmap reservedA [minBound..maxBound]
+
+reservedOneOf :: Buildable a => [a] -> Parser a
+reservedOneOf = TP.choice . fmap reservedA
 
 reservedA :: Buildable a => a -> Parser a
 reservedA a = do
   reserved . TL.toStrict . TLB.toLazyText . build $ a
   return a
+
+quasiQuotes :: Parser a -> Parser a
+quasiQuotes = TP.between (TP.symbol "$(") (TP.symbol ")")

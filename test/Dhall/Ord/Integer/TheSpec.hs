@@ -8,8 +8,6 @@ module Dhall.Ord.Integer.TheSpec (spec) where
 import           SpecUtils
 
 import           Data.String.Interpolate     (i)
-import qualified Text.Trifecta.Parser        as Tri
-import qualified Text.Trifecta.Result        as Tri
 
 import qualified Dhall.Context               as Dh
 import qualified Dhall.Core                  as Dh
@@ -26,42 +24,32 @@ import qualified Dhall.Ord.Integer.TypeCheck as DhIntegerOrd
 spec :: Spec
 spec = describe "end-to-end" $ do
   it "should work with literals" $ do
-    let expr (x :: Integer) = checked [i|
+    let expr (x :: Integer) = checked DhIntegerOrd.parser DhIntegerOrd.typer [i|
 
     if Integer/LT #{x} 3 then "#t" else "#f"
 
     |]
-    fmap ordNormalize (expr 3) `shouldBeIO` Dh.TextLit "#f"
-    fmap ordNormalize (expr 2) `shouldBeIO` Dh.TextLit "#t"
+    fmap normalize (expr 3) `shouldBeIO` Dh.TextLit "#f"
+    fmap normalize (expr 2) `shouldBeIO` Dh.TextLit "#t"
   it "should work with application" $ do
-    let expr (x :: Integer) = checked [i|
+    let expr (x :: Integer) = checked DhIntegerOrd.parser DhIntegerOrd.typer [i|
 
     (\\(x : Integer) -> if Integer/LT x 3 then "#t" else "#f") #{x}
 
     |]
 
-    fmap ordNormalize (expr 3) `shouldBeIO` Dh.TextLit "#f"
-    fmap ordNormalize (expr 2) `shouldBeIO` Dh.TextLit "#t"
+    fmap normalize (expr 3) `shouldBeIO` Dh.TextLit "#f"
+    fmap normalize (expr 2) `shouldBeIO` Dh.TextLit "#t"
   it "should handle poorly-typed expressions" $ do
-    expr <- parsed [i|
+    expr <- parsed DhIntegerOrd.parser [i|
 
     if Integer/LT "2" 3 then "#t" else "#f"
 
     |]
-    shouldBeLeft $ ordTypeOf expr
+    shouldBeLeft $ typeOf expr
 
-ordNormalize :: Dh.Expr Dh.Src DhIntegerOrd -> Dh.Expr Dh.Src DhIntegerOrd
-ordNormalize = Dh.normalizeWith DhIntegerOrd.normalizer
+normalize :: Dh.Expr Dh.Src DhIntegerOrd -> Dh.Expr Dh.Src DhIntegerOrd
+normalize = Dh.normalizeWith DhIntegerOrd.normalizer
 
-ordTypeOf :: Dh.Expr Dh.Src DhIntegerOrd -> Either (Dh.TypeError Dh.Src DhIntegerOrd) (Dh.Expr Dh.Src DhIntegerOrd)
-ordTypeOf = Dh.typeWithA DhIntegerOrd.typer Dh.empty
-
-parsed :: String -> IO (Dh.Expr Dh.Src DhIntegerOrd)
-parsed s = case Tri.parseString (Dh.unParser $ Dh.exprA DhIntegerOrd.parser) mempty s of
-  Tri.Success a   -> pure a
-  Tri.Failure err -> expectationFailure $ "Bad Parse: " ++ show err
-
-checked :: String -> IO (Dh.Expr Dh.Src DhIntegerOrd)
-checked s = do
-  expr <- parsed s
-  ordTypeOf expr `asRight` (pure . const expr)
+typeOf :: Dh.Expr Dh.Src DhIntegerOrd -> Either (Dh.TypeError Dh.Src DhIntegerOrd) (Dh.Expr Dh.Src DhIntegerOrd)
+typeOf = Dh.typeWithA DhIntegerOrd.typer Dh.empty

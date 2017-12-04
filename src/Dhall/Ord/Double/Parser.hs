@@ -6,4 +6,4 @@ import           Dhall.Ord.Double.Core (DhDoubleOrd)
 import qualified Dhall.ParserUtils     as Dh
 
 parser :: Dh.Parser DhDoubleOrd
-parser = Dh.reservedOneOf
+parser = Dh.reservedEnum

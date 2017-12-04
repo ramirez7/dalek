@@ -31,9 +31,12 @@ library
     Dhall.Ord.Natural.TypeCheck
 
     Dhall.Time.Core
+    Dhall.Time.Parser
     Dhall.Time.TypeCheck
-  other-modules:
+
     Dhall.ParserUtils
+  other-modules:
+
   -- other-extensions:
   build-depends:
       base >=4.9 && <4.10
@@ -42,6 +45,7 @@ library
     , text
     , trifecta
     , parsers
+    , time-parsers
     , union
     , transformers
     , time
@@ -61,6 +65,8 @@ test-suite spec
     , hspec
     , trifecta
     , interpolate
+    , text-format
+    , parsers
 
     , dhall
     , dhall-extensions
@@ -69,3 +75,4 @@ test-suite spec
     Dhall.Ord.Double.TheSpec
     Dhall.Ord.Integer.TheSpec
     Dhall.Ord.Natural.TheSpec
+    Dhall.Time.TheSpec
