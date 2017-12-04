@@ -1,11 +1,13 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms   #-}
 
 module Dhall.Ord.Natural.Core where
 
 import           Dhall               (Natural)
 import qualified Dhall.Core          as Dh
 
+import           Dhall.Patterns
 import           Data.Text.Buildable (Buildable (..))
 
 data DhNaturalOrd =
@@ -28,7 +30,7 @@ toCmp = \case
 
 normalizer :: Dh.Normalizer DhNaturalOrd
 normalizer = \case
-  Dh.App (Dh.App (Dh.Embed dhOrd) x) y -> fmap Dh.BoolLit (cmpWith (toCmp dhOrd) x y)
+  Apps [E dhOrd, x, y] -> fmap Dh.BoolLit (cmpWith (toCmp dhOrd) x y)
   _ -> Nothing
 
 -- | This assumes normalization of expressions

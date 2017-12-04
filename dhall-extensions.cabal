@@ -18,6 +18,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:
     Dhall.Extensible.Core
+    Dhall.Patterns
 
     Dhall.Ord.Double.Core
     Dhall.Ord.Double.Parser
@@ -30,6 +31,7 @@ library
     Dhall.Ord.Natural.TypeCheck
 
     Dhall.Time.Core
+    Dhall.Time.TypeCheck
   other-modules:
     Dhall.ParserUtils
   -- other-extensions:
@@ -43,6 +45,7 @@ library
     , union
     , transformers
     , time
+    , containers
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options: -Wall
