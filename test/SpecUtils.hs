@@ -24,6 +24,11 @@ shouldBeLeft eea = case eea of
   Left _      -> pure ()
   Right right -> expectationFailure $ "Not Left: Right " ++ show right
 
+shouldBeRight :: (Show e) => Either e a -> IO ()
+shouldBeRight eea = case eea of
+  Right _      -> pure ()
+  Left left -> expectationFailure $ "Not Right: Left " ++ show left
+
 asRight :: Show e => Either e a -> (a -> IO b) -> IO b
 asRight eea f = case eea of
   Right a   -> f a

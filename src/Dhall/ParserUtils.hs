@@ -80,7 +80,7 @@ reservedEnum :: (Buildable a, Enum a, Bounded a) => Parser a
 reservedEnum = TP.choice $ fmap reservedA [minBound..maxBound]
 
 reservedOneOf :: Buildable a => [a] -> Parser a
-reservedOneOf = TP.choice . fmap reservedA
+reservedOneOf = TP.choice . fmap (TP.try . reservedA)
 
 reservedA :: Buildable a => a -> Parser a
 reservedA a = do

@@ -67,6 +67,8 @@ test-suite spec
     , interpolate
     , text-format
     , parsers
+    , time
+    , containers
 
     , dhall
     , dhall-extensions

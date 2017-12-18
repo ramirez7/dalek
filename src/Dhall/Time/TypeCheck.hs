@@ -19,5 +19,5 @@ typer = \case
   DhTimeZone -> Dh.Const Dh.Type
   DhTimeZoneLit _ -> Dh.Embed DhTimeZone
   DhLocalTimeDayOfWeek -> Dh.Pi "_" (Dh.Embed DhLocalTime) Dh.Integer
-  DhUTCTimeToLocalTime -> Dh.Pi "_" (Dh.Embed DhUTCTime) (Dh.Pi "_" (Dh.Embed DhTimeZone) (Dh.Embed DhLocalTime))
+  DhUTCTimeToLocalTime -> Dh.Pi "_" (Dh.Embed DhTimeZone) (Dh.Pi "_" (Dh.Embed DhUTCTime) (Dh.Embed DhLocalTime))
   DhLocalTimeTimeOfDay -> Dh.Pi "_" (Dh.Embed DhLocalTime) (Dh.Record $ M.fromList [("hour", Dh.Integer), ("minute", Dh.Integer)])
