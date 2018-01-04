@@ -35,6 +35,8 @@ library
     Dhall.Time.TypeCheck
 
     Dhall.ParserUtils
+
+    Dhall.Repl
   other-modules:
 
   -- other-extensions:
@@ -50,6 +52,9 @@ library
     , transformers
     , time
     , containers
+    , haskeline
+    , mtl
+    , unordered-containers
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options: -Wall
@@ -77,4 +82,5 @@ test-suite spec
     Dhall.Ord.Double.TheSpec
     Dhall.Ord.Integer.TheSpec
     Dhall.Ord.Natural.TheSpec
+    Dhall.ReplSpec
     Dhall.Time.TheSpec

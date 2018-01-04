@@ -3,16 +3,16 @@
 
 module SpecUtils (module X, module SpecUtils) where
 
-import           Test.Hspec                    as X hiding (expectationFailure)
+import           Test.Hspec           as X hiding (expectationFailure)
 
-import qualified Dhall.Context                 as Dh
-import qualified Dhall.Core                    as Dh
-import qualified Dhall.Parser                  as Dh
-import qualified Dhall.TypeCheck               as Dh
+import qualified Dhall.Context        as Dh
+import qualified Dhall.Core           as Dh
+import qualified Dhall.Parser         as Dh
+import qualified Dhall.TypeCheck      as Dh
 
-import           Data.Text.Buildable (Buildable)
-import qualified Text.Trifecta.Parser          as Tri
-import qualified Text.Trifecta.Result          as Tri
+import           Dhall.ParserUtils    (Result(..), parseDhallStr)
+
+import           Data.Text.Buildable  (Buildable)
 
 rightWith :: (Show a, Show e, Eq a) => Either e a -> a -> IO ()
 rightWith eea expected = case eea of
@@ -26,7 +26,7 @@ shouldBeLeft eea = case eea of
 
 shouldBeRight :: (Show e) => Either e a -> IO ()
 shouldBeRight eea = case eea of
-  Right _      -> pure ()
+  Right _   -> pure ()
   Left left -> expectationFailure $ "Not Right: Left " ++ show left
 
 asRight :: Show e => Either e a -> (a -> IO b) -> IO b
@@ -43,9 +43,14 @@ shouldBeIO ioa expected = do
   a `shouldBe` expected
 
 parsed :: Dh.Parser a -> String -> IO (Dh.Expr Dh.Src a)
-parsed p s = case Tri.parseString (Dh.unParser $ Dh.exprA p) mempty s of
-  Tri.Success a   -> pure a
-  Tri.Failure err -> expectationFailure $ "Bad Parse: " ++ show err
+parsed p s = case parseDhallStr (Dh.exprA p) s of
+  Success a   -> pure a
+  Failure err -> expectationFailure $ "Bad Parse: " ++ show err
+
+parsed' :: Dh.Parser a -> String -> IO a
+parsed' p s = case parseDhallStr p s of
+  Success a   -> pure a
+  Failure err -> expectationFailure $ "Bad Parse: " ++ show err
 
 checked :: (Buildable a, Eq a) => Dh.Parser a -> Dh.Typer a -> String -> IO (Dh.Expr Dh.Src a)
 checked p t s = do
