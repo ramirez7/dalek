@@ -2,9 +2,9 @@ module Dhall.Time.Parser where
 
 import qualified Dhall.Parser            as Dh
 
+import           Data.Time               (utc)
 import qualified Data.Time.Parsers       as TP
 import qualified Text.Parser.Combinators as TP
-import Data.Time (utc)
 
 import qualified Dhall.ParserUtils       as Dh
 import           Dhall.Time.Core         (DhTime (..))

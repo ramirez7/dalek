@@ -1,9 +1,9 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE KindSignatures         #-}
 
 module Dhall.Extensible.Core where
 
@@ -14,13 +14,10 @@ import           Data.Union
 
 import qualified Dhall.Core                as Dh
 
+-- TODO: These types can get a little better to help ensure we provide normalizers
+-- for every embedded type..but for now this'll work
+
 type OpenNormalizer as = Dh.Normalizer (OpenUnion as)
-
-normalizer :: Dh.Normalizer a -> Dh.Normalizer (OpenUnion as) -> Dh.Normalizer (OpenUnion (a ': as))
-normalizer na nas = undefined
-
-voidNormalizer :: OpenNormalizer '[]
-voidNormalizer = const Nothing
 
 {-
 openNormalizers for extensions should be written like this
@@ -42,3 +39,6 @@ infixl 3 .<|>
 -- | TODO: Doc comment
 (.<|>) :: Dh.Normalizer a -> Dh.Normalizer a -> Dh.Normalizer a
 nl .<|> nr = runMaybeT (MaybeT nl <|> MaybeT nr)
+
+sendEmbed :: forall s a as i. UElem a as i => a -> Dh.Expr s (OpenUnion as)
+sendEmbed a = Dh.Embed $ ulift $ Identity a

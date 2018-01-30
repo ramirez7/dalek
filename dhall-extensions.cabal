@@ -18,6 +18,9 @@ cabal-version:       >=1.10
 library
   exposed-modules:
     Dhall.Extensible.Core
+    Dhall.Extensible.Parser
+    Dhall.Extensible.TypeCheck
+
     Dhall.Patterns
 
     Dhall.Ord.Double.Core
