@@ -37,6 +37,10 @@ library
     Dhall.Time.Parser
     Dhall.Time.TypeCheck
 
+    Dhall.Map.Core
+    Dhall.Map.Parser
+    Dhall.Map.TypeCheck
+
     Dhall.ParserUtils
 
     Dhall.Repl

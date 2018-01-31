@@ -8,11 +8,12 @@
 
 module Dhall.Extensible.TypeCheck where
 
-import           Data.Functor.Identity      (Identity (..))
+import           Data.Functor.Identity (Identity (..))
 
 import           Data.Union
 
-import qualified Dhall.TypeCheck            as Dh
+import qualified Dhall.Core            as Dh
+import qualified Dhall.TypeCheck       as Dh
 
 -- OpenUnion as -> Expr s (OpenUnion as)
 type OpenTyper as = Dh.Typer (OpenUnion as)
@@ -23,6 +24,17 @@ typerUnion ta tas = \aas ->
     (\uas -> fmap urelax $ tas uas)
     (\(Identity a) -> fmap (ulift . Identity) $ ta a)
     aas
+{-
+-- TODO: Put this on HOLD until the Rec stuff is folded into Extensible.
+-- THEN get typer & normalizer combinators that allow projecting to a larger embedding
 
+type OpenTyper2 a as = forall s. a -> Dh.Expr s (OpenUnion as)
+
+sendTyper :: forall a as i. UElem a as i => Dh.Typer a -> OpenTyper2 a as
+sendTyper = undefined
+
+typerContrUnion :: OpenTyper2 a target -> OpenTyper2 b target -> OpenTyper2 (OpenUnion '[a, b]) target
+typerContrUnion = undefined
+-}
 voidOpenTyper :: OpenTyper '[]
 voidOpenTyper = absurdUnion
