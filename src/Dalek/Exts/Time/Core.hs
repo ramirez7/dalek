@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms   #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE FlexibleContexts   #-}
 
 module Dalek.Exts.Time.Core where
 
@@ -12,6 +13,7 @@ import           Data.Time.Format            (FormatTime, defaultTimeLocale,
                                               formatTime)
 import qualified Dhall.Core                  as Dh
 
+import           Dalek.Core                  (Member, OpenNormalizer, sendNorm, Const)
 import           Data.Time
 import           Data.Time.Calendar.WeekDate
 import           Dhall.Patterns
@@ -28,8 +30,8 @@ data DhTime =
   | DhLocalTimeTimeOfDay
   deriving (Eq, Ord, Show)
 
-normalizer :: Dh.Normalizer s DhTime
-normalizer = \case
+normalizer :: Member (Const DhTime) fs => OpenNormalizer s fs
+normalizer = sendNorm $ \case
   Apps [E DhLocalTimeDayOfWeek, E (DhLocalTimeLit lt)] ->
     let (_, _, dayOfWeek) = toWeekDate (localDay lt)
      in Just $ Dh.IntegerLit (fromIntegral dayOfWeek)
