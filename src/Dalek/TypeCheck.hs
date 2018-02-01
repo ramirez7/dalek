@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 
-module Dhall.Extensible.TypeCheck where
+module Dalek.TypeCheck where
 
 import           Data.Functor.Identity (Identity (..))
 

@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Dhall.Extensible.Core where
+module Dalek.Core where
 
 import           Control.Applicative
 import           Control.Monad.Trans.Maybe (MaybeT (..))

@@ -11,4 +11,4 @@ in (pkgs.haskell.packages.ghc802.override {
        }) {};
 
    };
-}).callCabal2nix "dhall-extensions" ./. {}
+}).callCabal2nix "dalek" ./. {}

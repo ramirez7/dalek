@@ -1,1 +1,1 @@
-import ./dhall-extensions.nix
+import ./dalek.nix

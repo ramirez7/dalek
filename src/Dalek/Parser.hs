@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 
-module Dhall.Extensible.Parser where
+module Dalek.Parser where
 
 import           Control.Applicative   ((<|>), empty)
 import           Data.Functor.Identity (Identity (..))

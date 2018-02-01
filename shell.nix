@@ -1,1 +1,1 @@
-(import ./dhall-extensions.nix).env
+(import ./dalek.nix).env
