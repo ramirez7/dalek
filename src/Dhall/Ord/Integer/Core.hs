@@ -27,7 +27,7 @@ toCmp = \case
   DhIntegerGT -> (>)
   DhIntegerGTE -> (>=)
 
-normalizer :: Dh.Normalizer DhIntegerOrd
+normalizer :: Dh.Normalizer s DhIntegerOrd
 normalizer = \case
   Apps [E dhOrd, x, y] -> fmap Dh.BoolLit (cmpWith (toCmp dhOrd) x y)
   _ -> Nothing
