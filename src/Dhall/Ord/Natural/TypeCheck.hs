@@ -8,6 +8,6 @@ import qualified Dhall.TypeCheck       as Dh
 
 import           Dhall.Ord.Natural.Core
 
-typer :: Dh.Typer DhNaturalOrd
+typer :: Dh.Typer s DhNaturalOrd
 typer = \case
   _ -> (Dh.Pi "_" Dh.Natural (Dh.Pi "_" Dh.Natural Dh.Bool))

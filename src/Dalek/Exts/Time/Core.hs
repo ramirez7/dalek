@@ -18,7 +18,7 @@ import           Data.Time
 import           Data.Time.Calendar.WeekDate
 import           Dalek.Patterns
 
-data DhTime =
+data DhTime expr =
     DhUTCTime
   | DhUTCTimeLit !UTCTime
   | DhLocalTime
@@ -30,7 +30,7 @@ data DhTime =
   | DhLocalTimeTimeOfDay
   deriving (Eq, Ord, Show)
 
-normalizer :: Member (Const DhTime) fs => OpenNormalizer s fs
+normalizer :: Member DhTime fs => OpenNormalizer s fs
 normalizer = sendNorm $ \case
   Apps [E DhLocalTimeDayOfWeek, E (DhLocalTimeLit lt)] ->
     let (_, _, dayOfWeek) = toWeekDate (localDay lt)
@@ -46,7 +46,7 @@ normalizer = sendNorm $ \case
   _ -> Nothing
 
 
-instance Buildable DhTime where
+instance Buildable (DhTime expr) where
   build = \case
     DhUTCTime -> "UTCTime"
     DhUTCTimeLit t -> quoteTime "%Y-%m-%dT%H:%M:%S%z" t

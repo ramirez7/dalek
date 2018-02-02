@@ -113,7 +113,7 @@ type ReplM m a = HL.InputT (StateT (LetScope a) m)
 runReplM :: HL.MonadException m => ReplM m a x -> m x
 runReplM = flip evalStateT mempty . HL.runInputT HL.defaultSettings
 
-repl :: forall a. (Eq a, Buildable a) => Dh.Parser a -> Dh.Normalizer Dh.Src a -> Dh.Typer a -> IO ()
+repl :: forall a. (Eq a, Buildable a) => Dh.Parser a -> Dh.Normalizer Dh.Src a -> Dh.Typer Dh.Src a -> IO ()
 repl p n t = runReplM loop
   where
     loop :: ReplM IO a ()
@@ -164,7 +164,7 @@ xParser = empty
 xNormalizer :: Dh.Normalizer s Dh.X
 xNormalizer = const Nothing
 
-xTyper :: Dh.Typer Dh.X
+xTyper :: Dh.Typer s Dh.X
 xTyper = Dh.absurd
 
 

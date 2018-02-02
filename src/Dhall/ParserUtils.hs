@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Dhall.ParserUtils (module Dhall.ParserUtils, Tri.Result (..)) where
 
@@ -83,6 +84,9 @@ whitespace = TP.skipMany whitespaceChunk
 
 reservedEnum :: (Buildable a, Enum a, Bounded a) => Parser a
 reservedEnum = TP.choice $ fmap reservedA [minBound..maxBound]
+
+reservedEnumF :: forall f a. (Buildable (f a), Enum (f a), Bounded (f a)) => Parser (f a)
+reservedEnumF = TP.choice $ fmap reservedA [minBound..maxBound]
 
 reservedOneOf :: Buildable a => [a] -> Parser a
 reservedOneOf = TP.choice . fmap (TP.try . reservedA)

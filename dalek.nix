@@ -6,8 +6,8 @@ in (pkgs.haskell.packages.ghc802.override {
      dhall = self.callCabal2nix "dhall" (pkgs.fetchFromGitHub {
          owner = "ramirez7";
          repo = "dhall-haskell";
-         rev = "1210edef7db68a1f289917714a6d8906ecd45035";
-         sha256 = "1ds5b6d6fw9sazg2xl3kqc6dqcwf7csbw7fhy90mjlgspf0dj8yf";
+         rev = "292134b5034bd39ebf0353e1e8aacc7935fe0a6b";
+         sha256 = "1jmvwhxqn2cwz318gi2jsbi5fwcl8hi3xicrslbsiqp8lq6s204c";
        }) {};
 
    };

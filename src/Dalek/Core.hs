@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -7,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Dalek.Core (module Dalek.Core, Member, Members, Const(..), inj, prj) where
@@ -15,8 +17,20 @@ import           Control.Applicative
 import           Control.Monad.Trans.Maybe (MaybeT (..))
 import           Data.Functor.Const        (Const (..))
 import           Data.Open.Union
+import           Data.Text.Buildable       (Buildable (..))
 
 import qualified Dhall.Core                as Dh
+
+-- TODO: IDEA: :git ghci command lol
+{-
+λ: :kind! Dh.Normalizer Int Bool
+Dh.Normalizer Int Bool :: *
+= Dh.Normalizer Int Bool
+λ: type family Id a where Id a = a
+λ: :kind! Id (Dh.Normalizer Int Bool)
+Id (Dh.Normalizer Int Bool) :: *
+= Dh.Expr Int Bool -> Maybe (Dh.Expr Int Bool)
+-}
 
 -- | Inspired by the "Term trick":
 --
@@ -25,11 +39,9 @@ newtype Rec s f = Rec { unRec :: f (Dh.Expr s (Rec s f)) }
 
 mapRec :: forall s f g. Functor g => (forall a. f a -> g a) -> Rec s f -> Rec s g
 mapRec f (Rec x) = (Rec (fmap (fmap (mapRec f)) (f x)))
-{-
-deriving instance (Show (f (Dh.Expr s (Rec s f))), Show s) => Show (Rec s f)
--}
 
 type Open s fs = Rec s (Union fs)
+type OpenExpr s fs = Dh.Expr s (Open s fs)
 
 type OpenNormalizer s (fs :: [* -> *]) = Dh.Normalizer s (Open s fs)
 
@@ -42,16 +54,73 @@ type OpenNormalizer s (fs :: [* -> *]) = Dh.Normalizer s (Open s fs)
 -- Member constraints)
 --
 -- Things like Map especially can't use this.
-sendNorm :: forall s a fs. Member (Const a) fs => Dh.Normalizer s a -> OpenNormalizer s fs
+sendNorm :: forall s f fs. Member f fs => Dh.Normalizer s (f (OpenExpr s fs)) -> OpenNormalizer s fs
 sendNorm f = \exprU -> do
-  (matched :: Dh.Expr s a) <- traverse (fmap getConst . prj . unRec) exprU
+  matched <- traverse (prj . unRec) exprU
   normalized <- f matched
-  pure $ fmap (Rec . inj . Const) normalized
+  pure $ fmap (Rec . inj) normalized
 
 infixl 3 .<|>
 -- | TODO: Doc comment
 (.<|>) :: Dh.Normalizer s a -> Dh.Normalizer s a -> Dh.Normalizer s a
 nl .<|> nr = runMaybeT (MaybeT nl <|> MaybeT nr)
 
-sendEmbed :: forall s a fs. Member (Const a) fs => a -> Dh.Expr s (Rec s (Union fs))
-sendEmbed a = Dh.Embed $ Rec $ inj $ Const a
+sendEmbed :: forall fs s f. Member f fs => f (OpenExpr s fs) -> OpenExpr s fs
+sendEmbed a = Dh.Embed $ Rec $ inj a
+
+--------------------------------------------------------------------------------
+-- instances
+
+instance Show (OrphanUnion fs (OpenExpr s fs)) => Show (Open s fs) where
+  show (Rec x) = show (OrphanUnion x)
+
+instance Eq (OrphanUnion fs (OpenExpr s fs)) => Eq (Open s fs) where
+  (Rec x) == (Rec y) = OrphanUnion x == OrphanUnion y
+
+instance Ord (OrphanUnion fs (OpenExpr s fs)) => Ord (Open s fs) where
+  compare (Rec x) (Rec y) = compare (OrphanUnion x) (OrphanUnion y)
+
+instance Buildable (OrphanUnion fs (OpenExpr s fs)) => Buildable (Open s fs) where
+  build (Rec x) = build (OrphanUnion x)
+
+newtype OrphanUnion fs a = OrphanUnion (Union fs a)
+
+instance (Show (f a)) => Show (OrphanUnion '[f] a) where
+  show (OrphanUnion x) = show $ extract x
+
+instance {-# OVERLAPPABLE #-} (Show (f a), Show (OrphanUnion fs a)) => Show (OrphanUnion (f ': fs) a) where
+  show (OrphanUnion x) = case decomp x of
+    Right fv -> show fv
+    Left uv  -> show (OrphanUnion uv)
+
+instance (Buildable (f a)) => Buildable (OrphanUnion '[f] a) where
+  build (OrphanUnion x) = build $ extract x
+
+instance {-# OVERLAPPABLE #-} (Buildable (f a), Buildable (OrphanUnion fs a)) => Buildable (OrphanUnion (f ': fs) a) where
+  build (OrphanUnion x) = case decomp x of
+    Right fv -> build fv
+    Left uv  -> build (OrphanUnion uv)
+
+instance (Eq (f a)) => Eq (OrphanUnion '[f] a) where
+  (OrphanUnion x) == (OrphanUnion y) = extract x == extract y
+
+instance {-# OVERLAPPABLE #-} (Eq (f a), Eq (OrphanUnion fs a)) => Eq (OrphanUnion (f ': fs) a) where
+  (OrphanUnion x) == (OrphanUnion y) = case decomp x of
+    Right fx -> case decomp y of
+      Right fy -> fx == fy
+      Left _   -> False
+    Left ux -> case decomp y of
+      Left uy -> OrphanUnion ux == OrphanUnion uy
+      Right _ -> False
+
+instance (Ord (f a)) => Ord (OrphanUnion '[f] a) where
+  compare (OrphanUnion x) (OrphanUnion y) = compare (extract x) (extract y)
+
+instance {-# OVERLAPPABLE #-} (Ord (f a), Ord (OrphanUnion fs a)) => Ord (OrphanUnion (f ': fs) a) where
+  compare (OrphanUnion x) (OrphanUnion y) = case decomp x of
+    Right fx -> case decomp y of
+      Right fy -> compare fx fy
+      Left _   -> GT
+    Left ux -> case decomp y of
+      Left uy -> compare (OrphanUnion ux) (OrphanUnion uy)
+      Right _ -> LT

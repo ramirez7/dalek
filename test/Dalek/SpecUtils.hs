@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes       #-}
 
-module SpecUtils (module X, module SpecUtils) where
+module Dalek.SpecUtils (module X, module Dalek.SpecUtils) where
 
 import           Test.Hspec           as X hiding (expectationFailure)
 

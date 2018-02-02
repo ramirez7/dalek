@@ -10,7 +10,7 @@ import qualified Dhall.TypeCheck as Dh
 import           Dhall.Time.Core
 
 
-typer :: Dh.Typer DhTime
+typer :: Dh.Typer s DhTime
 typer = \case
   DhUTCTime -> Dh.Const Dh.Type
   DhUTCTimeLit _ -> Dh.Embed DhUTCTime

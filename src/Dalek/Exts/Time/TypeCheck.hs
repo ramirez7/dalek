@@ -1,23 +1,25 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module Dalek.Exts.Time.TypeCheck where
 
-import qualified Data.Map        as M
-import qualified Dhall.Core      as Dh
-import qualified Dhall.TypeCheck as Dh
+import qualified Data.Map             as M
+import qualified Dhall.Core           as Dh
 
+import           Dalek.Core
 import           Dalek.Exts.Time.Core
+import           Dalek.TypeCheck
 
-
-typer :: Dh.Typer DhTime
+typer :: Member DhTime fs => OpenTyper s DhTime fs
 typer = \case
   DhUTCTime -> Dh.Const Dh.Type
-  DhUTCTimeLit _ -> Dh.Embed DhUTCTime
+  DhUTCTimeLit _ -> sendEmbed DhUTCTime
   DhLocalTime -> Dh.Const Dh.Type
-  DhLocalTimeLit _ -> Dh.Embed DhLocalTime
+  DhLocalTimeLit _ -> sendEmbed DhLocalTime
   DhTimeZone -> Dh.Const Dh.Type
-  DhTimeZoneLit _ -> Dh.Embed DhTimeZone
-  DhLocalTimeDayOfWeek -> Dh.Pi "_" (Dh.Embed DhLocalTime) Dh.Integer
-  DhUTCTimeToLocalTime -> Dh.Pi "_" (Dh.Embed DhTimeZone) (Dh.Pi "_" (Dh.Embed DhUTCTime) (Dh.Embed DhLocalTime))
-  DhLocalTimeTimeOfDay -> Dh.Pi "_" (Dh.Embed DhLocalTime) (Dh.Record $ M.fromList [("hour", Dh.Integer), ("minute", Dh.Integer)])
+  DhTimeZoneLit _ -> sendEmbed DhTimeZone
+  DhLocalTimeDayOfWeek -> Dh.Pi "_" (sendEmbed DhLocalTime) Dh.Integer
+  DhUTCTimeToLocalTime -> Dh.Pi "_" (sendEmbed DhTimeZone) (Dh.Pi "_" (sendEmbed DhUTCTime) (sendEmbed DhLocalTime))
+  DhLocalTimeTimeOfDay -> Dh.Pi "_" (sendEmbed DhLocalTime) (Dh.Record $ M.fromList [("hour", Dh.Integer), ("minute", Dh.Integer)])

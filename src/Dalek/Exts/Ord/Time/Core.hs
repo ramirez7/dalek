@@ -16,16 +16,16 @@ import           Dalek.Core
 import           Dalek.Exts.Time.Core
 import           Dalek.Patterns
 
-data DhUTCTimeOrd =
+data DhUTCTimeOrd expr =
     DhUTCTimeEQ
   | DhUTCTimeNEQ
   | DhUTCTimeLT
   | DhUTCTimeLTE
   | DhUTCTimeGT
   | DhUTCTimeGTE
-  deriving (Eq, Show, Enum, Bounded)
+  deriving (Eq, Show, Ord, Enum, Bounded)
 
-toCmp :: DhUTCTimeOrd -> (Ord a => a -> a -> Bool)
+toCmp :: DhUTCTimeOrd expr -> (forall a. Ord a => a -> a -> Bool)
 toCmp = \case
   DhUTCTimeEQ -> (==)
   DhUTCTimeNEQ -> (/=)
@@ -34,13 +34,13 @@ toCmp = \case
   DhUTCTimeGT -> (>)
   DhUTCTimeGTE -> (>=)
 
-normalizer :: Members '[Const DhUTCTimeOrd, Const DhTime] as => OpenNormalizer s as
+normalizer :: Members '[DhUTCTimeOrd, DhTime] as => OpenNormalizer s as
 normalizer = \case
-  Apps [EC dhOrd, EC (DhUTCTimeLit x), EC (DhUTCTimeLit y)] ->
+  Apps [ER dhOrd, ER (DhUTCTimeLit x), ER (DhUTCTimeLit y)] ->
     Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing
 
-instance Buildable DhUTCTimeOrd where
+instance Buildable (DhUTCTimeOrd a) where
   build = \case
     DhUTCTimeEQ -> "UTCTime/EQ"
     DhUTCTimeNEQ -> "UTCTime/NEQ"
