@@ -30,6 +30,9 @@ library
     Dalek.Exts.Ord.Natural.Core
     Dalek.Exts.Ord.Natural.Parser
     Dalek.Exts.Ord.Natural.TypeCheck
+    Dalek.Exts.Ord.Time.Core
+    Dalek.Exts.Ord.Time.Parser
+    Dalek.Exts.Ord.Time.TypeCheck
 
     Dalek.Exts.Time.Core
     Dalek.Exts.Time.Parser
@@ -39,6 +42,9 @@ library
     Dalek.Exts.Map.Parser
     Dalek.Exts.Map.TypeCheck
 
+    Dalek.Patterns
+
+    -- EVENTUALLY REMOVE:
     Dhall.Patterns
 
     Dhall.Ord.Double.Core
@@ -61,6 +67,7 @@ library
 
     Dhall.ParserUtils
 
+    -- SEPARATE PACKAGE:
     Dhall.Repl
   other-modules:
 

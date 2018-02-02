@@ -7,7 +7,7 @@ module Dalek.Exts.Ord.Double.Core where
 import qualified Dhall.Core          as Dh
 
 import           Data.Text.Buildable (Buildable (..))
-import           Dhall.Patterns
+import           Dalek.Patterns
 
 data DhDoubleOrd =
     DhDoubleEQ

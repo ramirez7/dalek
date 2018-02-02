@@ -5,26 +5,47 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE TypeApplications         #-}
+{-# LANGUAGE PolyKinds         #-}
 
 module Dalek.Parser where
 
-import           Control.Applicative   ((<|>), empty)
-import           Data.Functor.Identity (Identity (..))
-import           Data.Union
+import           Control.Applicative     (empty, (<|>))
 import qualified Text.Parser.Combinators as TP
 
-import qualified Dhall.Parser          as Dh
+import qualified Dhall.Parser            as Dh
 
-type OpenParser as = Dh.Parser (OpenUnion as)
+import           Dalek.Core
 
-sendParser :: forall a as i. UElem a as i => Dh.Parser a -> OpenParser as
-sendParser = fmap (ulift . Identity)
+import           Data.Open.Union         (Union, weaken)
 
-relaxParser :: forall as bs is. USubset as bs is => OpenParser as -> OpenParser bs
-relaxParser = fmap urelax
+type OpenParser s fs = Dh.Parser (Open s fs)
 
-parserUnion :: forall a as is. USubset as (a ': as) is => Dh.Parser a -> OpenParser as -> OpenParser (a ': as)
-parserUnion pa pas = TP.try (sendParser pa) <|> relaxParser pas
+sendParser :: forall (fs :: [* -> *]) a s. Member (Const a) fs => Dh.Parser a -> OpenParser s fs
+sendParser = fmap (Rec . inj . Const)
 
-voidOpenParser :: OpenParser '[]
+infixr `parserUnion`
+-- | Typically used infix (right-associative) in conjunction with 'openParser':
+--
+-- @
+-- empty `parserUnion` empty `parserUnion` openParser empty
+-- @
+parserUnion :: Functor (Union (f ': fs)) => Dh.Parser a -> OpenParser s (f ': fs) -> OpenParser s (Const a ': f ': fs)
+parserUnion p op = TP.try (sendParser p) <|> (fmap (mapRec weaken) op)
+
+-- | A more specific 'sendParser'. Meant to help inference when building up
+-- the parser. Used at the "bottom" of all the calls to parserUnion
+openParser :: Dh.Parser a -> OpenParser s '[Const a]
+openParser = sendParser
+
+tstPrefix :: forall s. OpenParser s '[Const Int, Const Bool, Const ()]
+tstPrefix =
+  (parserUnion empty
+    (parserUnion empty
+      (openParser empty)))
+
+tstInfix :: forall s. OpenParser s '[Const Int, Const Bool, Const ()]
+tstInfix = empty `parserUnion` empty `parserUnion` openParser empty
+
+voidOpenParser :: OpenParser s '[]
 voidOpenParser = empty

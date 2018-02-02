@@ -16,7 +16,7 @@ import qualified Dhall.Core                  as Dh
 import           Dalek.Core                  (Member, OpenNormalizer, sendNorm, Const)
 import           Data.Time
 import           Data.Time.Calendar.WeekDate
-import           Dhall.Patterns
+import           Dalek.Patterns
 
 data DhTime =
     DhUTCTime

@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Dalek.Core (module Dalek.Core, Member, Members, Const) where
+module Dalek.Core (module Dalek.Core, Member, Members, Const(..), inj, prj) where
 
 import           Control.Applicative
 import           Control.Monad.Trans.Maybe (MaybeT (..))
@@ -21,15 +21,17 @@ import qualified Dhall.Core                as Dh
 -- | Inspired by the "Term trick":
 --
 -- http://blog.sumtypeofway.com/recursion-schemes-part-41-2-better-living-through-base-functors/
---
--- @rec@ is typically kept polymorphic
 newtype Rec s f = Rec { unRec :: f (Dh.Expr s (Rec s f)) }
 
+mapRec :: forall s f g. Functor g => (forall a. f a -> g a) -> Rec s f -> Rec s g
+mapRec f (Rec x) = (Rec (fmap (fmap (mapRec f)) (f x)))
 {-
 deriving instance (Show (f (Dh.Expr s (Rec s f))), Show s) => Show (Rec s f)
 -}
 
-type OpenNormalizer s (fs :: [* -> *]) = Dh.Normalizer s (Rec s (Union fs))
+type Open s fs = Rec s (Union fs)
+
+type OpenNormalizer s (fs :: [* -> *]) = Dh.Normalizer s (Open s fs)
 
 -- | This is useful for when we want to write normalizers ONLY in terms of
 -- vanilla Dhall + our embedded a. Time is like that.

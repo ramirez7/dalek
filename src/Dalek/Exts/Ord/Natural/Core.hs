@@ -7,7 +7,7 @@ module Dalek.Exts.Ord.Natural.Core where
 import           Dhall               (Natural)
 import qualified Dhall.Core          as Dh
 
-import           Dhall.Patterns
+import           Dalek.Patterns
 import           Data.Text.Buildable (Buildable (..))
 
 data DhNaturalOrd =
