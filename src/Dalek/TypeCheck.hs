@@ -18,7 +18,7 @@ import Data.Open.Union
 -- f (OpenExpr s fs) -> OpenExpr s fs
 -- OpenTyper s (Union fs) fs ~ Typer
 type OpenTyper s f fs = f (OpenExpr s fs) -> OpenExpr s fs
-
+-- TODO: Open type should be a Typer alias. PartialTyper or smth should be this one
 typerUnion :: OpenTyper s f ftarget -> OpenTyper s (Union fs) ftarget -> OpenTyper s (Union (f ': fs)) ftarget
 typerUnion otf otfs = \uffs -> case decomp uffs of
   Right f -> otf f

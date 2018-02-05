@@ -2,21 +2,19 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE QuasiQuotes         #-}
 
-{-# LANGUAGE ScopedTypeVariables #-}
-
 module Dalek.Exts.Ord.Time.TheSpec (spec) where
 
-import           Control.Applicative           ((<|>))
 import           Dalek.SpecUtils
-import           Data.String.Interpolate       (i)
--- TODO:  export i in spec utils
 
+import           Control.Applicative           ((<|>))
+
+import qualified Dhall.Context
 import qualified Dhall.Core                    as Dh
 import qualified Dhall.Parser                  as Dh
 import qualified Dhall.TypeCheck               as Dh
 
 import           Dalek.Core
-import           Dalek.Exts.Ord.Time.Core      (DhUTCTimeOrd)
+import           Dalek.Exts.Ord.Time.Core      (DhUTCTimeOrd (..))
 import qualified Dalek.Exts.Ord.Time.Core
 import qualified Dalek.Exts.Ord.Time.Parser
 import qualified Dalek.Exts.Ord.Time.TypeCheck
@@ -45,3 +43,9 @@ spec = do
               UTCTime/LT $(1776-07-04T00:00:00Z) $(2018-01-01T00:00:00Z)
             |]
       Dh.normalizeWith normalize expr `shouldBe` Dh.BoolLit True
+    it "should type" $ do
+      expr <- parsed parser [i|
+        UTCTime/LT : UTCTime -> UTCTime -> Bool
+      |]
+      shouldBeRight $ Dh.typeWithA typer Dhall.Context.empty expr
+      Dh.normalizeWith normalize expr `shouldBe` sendEmbed DhUTCTimeLT

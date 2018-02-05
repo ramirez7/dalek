@@ -3,16 +3,18 @@
 
 module Dalek.SpecUtils (module X, module Dalek.SpecUtils) where
 
-import           Test.Hspec           as X hiding (expectationFailure)
+import           Test.Hspec              as X hiding (expectationFailure)
 
-import qualified Dhall.Context        as Dh
-import qualified Dhall.Core           as Dh
-import qualified Dhall.Parser         as Dh
-import qualified Dhall.TypeCheck      as Dh
+import qualified Dhall.Context           as Dh
+import qualified Dhall.Core              as Dh
+import qualified Dhall.Parser            as Dh
+import qualified Dhall.TypeCheck         as Dh
 
-import           Dhall.ParserUtils    (Result(..), parseDhallStr)
+import           Dhall.ParserUtils       (Result (..), parseDhallStr)
 
-import           Data.Text.Buildable  (Buildable)
+import           Data.Text.Buildable     (Buildable)
+
+import           Data.String.Interpolate as X (i)
 
 rightWith :: (Show a, Show e, Eq a) => Either e a -> a -> IO ()
 rightWith eea expected = case eea of
