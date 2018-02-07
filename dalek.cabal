@@ -114,6 +114,7 @@ test-suite spec
     , dhall
     , dalek
   other-modules:
+    Dalek.Exts.Time.TheSpec
     Dalek.Exts.Ord.Time.TheSpec
     Dalek.Exts.Map.TheSpec
     Dalek.SpecUtils
