@@ -1,0 +1,17 @@
+resolver: lts-8.20
+
+packages:
+- '.'
+
+- location:
+    # not in Hackage
+    git: https://github.com/ramirez7/dhall-haskell.git
+    commit: b47dedfbd4408a2dc07d4df08483947a3fb8b354
+  extra-dep: true
+
+extra-deps:
+- prettyprinter-1.1.1
+
+nix:
+  enable: true
+  packages: [ gcc ncurses zlib ]
