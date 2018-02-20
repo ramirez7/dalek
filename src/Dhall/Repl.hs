@@ -141,9 +141,10 @@ repl p n t = runReplM loop
             displayTypeError err
             loop
           Right type_ -> do
+            let normType = Dh.normalizeWith n type_
             let res = Dh.normalizeWith n fullExpr
             let buildStr = TL.unpack . TLB.toLazyText . build
-            HL.outputStrLn (buildStr type_)
+            HL.outputStrLn (buildStr normType)
             HL.outputStrLn ""
             HL.outputStrLn (buildStr res)
             loop
@@ -151,7 +152,7 @@ repl p n t = runReplM loop
         -- TODO: Better error message (maybe just put the dhall parser error msg)
         HL.outputStrLn "Unknown command"
         loop
-    typeOf = Dh.typeWithA t Dhall.Context.empty
+    typeOf = Dh.typeWithAN n t Dhall.Context.empty
 
     displayTypeError err = HL.outputStrLn $ "Type error: \n" ++ show err
 
