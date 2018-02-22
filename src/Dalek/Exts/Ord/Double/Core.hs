@@ -1,15 +1,18 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PatternSynonyms       #-}
 
 module Dalek.Exts.Ord.Double.Core where
 
+import           Data.Text.Buildable (Buildable (..))
 import qualified Dhall.Core          as Dh
 
-import           Data.Text.Buildable (Buildable (..))
-import           Dhall.Patterns
+import           Dalek.Core
+import           Dalek.Patterns
 
-data DhDoubleOrd =
+data DhDoubleOrd expr =
     DhDoubleEQ
   | DhDoubleNEQ
   | DhDoubleLT
@@ -18,7 +21,7 @@ data DhDoubleOrd =
   | DhDoubleGTE
   deriving (Eq, Show, Enum, Bounded)
 
-toCmp :: DhDoubleOrd -> (Double -> Double -> Bool)
+toCmp :: DhDoubleOrd expr -> (Double -> Double -> Bool)
 toCmp = \case
   DhDoubleEQ -> (==)
   DhDoubleNEQ -> (/=)
@@ -27,19 +30,12 @@ toCmp = \case
   DhDoubleGT -> (>)
   DhDoubleGTE -> (>=)
 
-normalizer :: Dh.Normalizer s DhDoubleOrd
+normalizer :: Member DhDoubleOrd fs => OpenNormalizer s fs
 normalizer = \case
-  Apps [E dhOrd, x, y] -> fmap Dh.BoolLit (cmpWith (toCmp dhOrd) x y)
+  Apps [ER dhOrd, Dh.DoubleLit x, Dh.DoubleLit y] -> Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing
 
--- | This assumes normalization of expressions
--- Returns Nothing if it is ill-typed and can't be normalized
-cmpWith :: (Double -> Double -> Bool) -> Dh.Expr s a -> Dh.Expr s a -> Maybe Bool
-cmpWith cmp lhs rhs = case (lhs, rhs) of
-  (Dh.DoubleLit x, Dh.DoubleLit y) -> Just $ cmp x y
-  _                                -> Nothing
-
-instance Buildable DhDoubleOrd where
+instance Buildable (DhDoubleOrd expr) where
   build = \case
     DhDoubleEQ -> "Double/EQ"
     DhDoubleNEQ -> "Double/NEQ"

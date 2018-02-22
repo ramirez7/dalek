@@ -46,26 +46,6 @@ library
 
     Dalek.Interop
     -- EVENTUALLY REMOVE:
-    Dhall.Patterns
-
-    Dhall.Ord.Double.Core
-    Dhall.Ord.Double.Parser
-    Dhall.Ord.Double.TypeCheck
-    Dhall.Ord.Integer.Core
-    Dhall.Ord.Integer.Parser
-    Dhall.Ord.Integer.TypeCheck
-    Dhall.Ord.Natural.Core
-    Dhall.Ord.Natural.Parser
-    Dhall.Ord.Natural.TypeCheck
-
-    Dhall.Time.Core
-    Dhall.Time.Parser
-    Dhall.Time.TypeCheck
-
-    Dhall.Map.Core
-    Dhall.Map.Parser
-    Dhall.Map.TypeCheck
-
     Dhall.ParserUtils
 
     -- SEPARATE PACKAGE:
@@ -116,12 +96,10 @@ test-suite spec
   other-modules:
     Dalek.Exts.Time.TheSpec
     Dalek.Exts.Ord.Time.TheSpec
+    Dalek.Exts.Ord.Integer.TheSpec
+    Dalek.Exts.Ord.Double.TheSpec
+    Dalek.Exts.Ord.Natural.TheSpec
     Dalek.Exts.Map.TheSpec
     Dalek.SpecUtils
 
-    SpecUtils
-    Dhall.Ord.Double.TheSpec
-    Dhall.Ord.Integer.TheSpec
-    Dhall.Ord.Natural.TheSpec
     Dhall.ReplSpec
-    Dhall.Time.TheSpec

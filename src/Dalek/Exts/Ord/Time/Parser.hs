@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications      #-}
 
 module Dalek.Exts.Ord.Time.Parser where
 

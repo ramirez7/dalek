@@ -1,13 +1,17 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PatternSynonyms       #-}
 
 module Dalek.Exts.Ord.Integer.TypeCheck where
 
-import qualified Dhall.Core            as Dh
-import qualified Dhall.TypeCheck       as Dh
+import qualified Dhall.Core                  as Dh
 
+import           Dalek.Core
 import           Dalek.Exts.Ord.Integer.Core
+import           Dalek.TypeCheck
 
-typer :: Dh.Typer s DhIntegerOrd
+typer :: (Member DhIntegerOrd fs) => OpenTyper s DhIntegerOrd fs
 typer = \case
   _ -> (Dh.Pi "_" Dh.Integer (Dh.Pi "_" Dh.Integer Dh.Bool))

@@ -1,16 +1,19 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PatternSynonyms       #-}
 
 module Dalek.Exts.Ord.Natural.Core where
 
+import           Data.Text.Buildable (Buildable (..))
 import           Dhall               (Natural)
 import qualified Dhall.Core          as Dh
 
+import           Dalek.Core
 import           Dalek.Patterns
-import           Data.Text.Buildable (Buildable (..))
 
-data DhNaturalOrd =
+data DhNaturalOrd expr =
     DhNaturalEQ
   | DhNaturalNEQ
   | DhNaturalLT
@@ -19,7 +22,7 @@ data DhNaturalOrd =
   | DhNaturalGTE
   deriving (Eq, Show, Enum, Bounded)
 
-toCmp :: DhNaturalOrd -> (Natural -> Natural -> Bool)
+toCmp :: DhNaturalOrd expr -> (Natural -> Natural -> Bool)
 toCmp = \case
   DhNaturalEQ -> (==)
   DhNaturalNEQ -> (/=)
@@ -28,19 +31,12 @@ toCmp = \case
   DhNaturalGT -> (>)
   DhNaturalGTE -> (>=)
 
-normalizer :: Dh.Normalizer s DhNaturalOrd
+normalizer :: Member DhNaturalOrd fs => OpenNormalizer s fs
 normalizer = \case
-  Apps [E dhOrd, x, y] -> fmap Dh.BoolLit (cmpWith (toCmp dhOrd) x y)
+  Apps [ER dhOrd, Dh.NaturalLit x, Dh.NaturalLit y] -> Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing
 
--- | This assumes normalization of expressions
--- Returns Nothing if it is ill-typed and can't be normalized
-cmpWith :: (Natural -> Natural -> Bool) -> Dh.Expr s a -> Dh.Expr s a -> Maybe Bool
-cmpWith cmp lhs rhs = case (lhs, rhs) of
-  (Dh.NaturalLit x, Dh.NaturalLit y) -> Just $ cmp x y
-  _                                  -> Nothing
-
-instance Buildable DhNaturalOrd where
+instance Buildable (DhNaturalOrd expr) where
   build = \case
     DhNaturalEQ -> "Natural/EQ"
     DhNaturalNEQ -> "Natural/NEQ"

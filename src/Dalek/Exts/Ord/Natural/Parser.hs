@@ -1,9 +1,14 @@
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeApplications      #-}
+
 module Dalek.Exts.Ord.Natural.Parser where
 
-import qualified Dhall.Parser           as Dh
-
+import           Dalek.Core
 import           Dalek.Exts.Ord.Natural.Core (DhNaturalOrd)
-import qualified Dhall.ParserUtils      as Dh
+import qualified Dhall.ParserUtils     as Dh
+import           Dalek.Parser
 
-parser :: Dh.Parser DhNaturalOrd
-parser = Dh.reservedEnum
+
+parser :: Member DhNaturalOrd fs => OpenParser s fs
+parser = sendParser (Dh.reservedEnumF @DhNaturalOrd)

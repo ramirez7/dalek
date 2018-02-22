@@ -1,15 +1,18 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PatternSynonyms       #-}
 
 module Dalek.Exts.Ord.Integer.Core where
 
+import           Data.Text.Buildable (Buildable (..))
 import qualified Dhall.Core          as Dh
 
-import           Data.Text.Buildable (Buildable (..))
+import           Dalek.Core
 import           Dalek.Patterns
 
-data DhIntegerOrd =
+data DhIntegerOrd expr =
     DhIntegerEQ
   | DhIntegerNEQ
   | DhIntegerLT
@@ -18,7 +21,7 @@ data DhIntegerOrd =
   | DhIntegerGTE
   deriving (Eq, Show, Enum, Bounded)
 
-toCmp :: DhIntegerOrd -> (Integer -> Integer -> Bool)
+toCmp :: DhIntegerOrd expr -> (Integer -> Integer -> Bool)
 toCmp = \case
   DhIntegerEQ -> (==)
   DhIntegerNEQ -> (/=)
@@ -27,19 +30,12 @@ toCmp = \case
   DhIntegerGT -> (>)
   DhIntegerGTE -> (>=)
 
-normalizer :: Dh.Normalizer s DhIntegerOrd
+normalizer :: Member DhIntegerOrd fs => OpenNormalizer s fs
 normalizer = \case
-  Apps [E dhOrd, x, y] -> fmap Dh.BoolLit (cmpWith (toCmp dhOrd) x y)
+  Apps [ER dhOrd, Dh.IntegerLit x, Dh.IntegerLit y] -> Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing
 
--- | This assumes normalization of expressions
--- Returns Nothing if it is ill-typed and can't be normalized
-cmpWith :: (Integer -> Integer -> Bool) -> Dh.Expr s a -> Dh.Expr s a -> Maybe Bool
-cmpWith cmp lhs rhs = case (lhs, rhs) of
-  (Dh.IntegerLit x, Dh.IntegerLit y) -> Just $ cmp x y
-  _                                  -> Nothing
-
-instance Buildable DhIntegerOrd where
+instance Buildable (DhIntegerOrd expr) where
   build = \case
     DhIntegerEQ -> "Integer/EQ"
     DhIntegerNEQ -> "Integer/NEQ"
