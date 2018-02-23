@@ -9,7 +9,6 @@ import           Dalek.SpecUtils
 
 import           Control.Applicative       ((<|>))
 
-import qualified Dhall.Context
 import qualified Dhall.Core                as Dh
 import qualified Dhall.Parser              as Dh
 import qualified Dhall.TypeCheck           as Dh

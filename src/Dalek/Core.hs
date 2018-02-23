@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -11,15 +12,15 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Dalek.Core (module Dalek.Core, Member, Members, Const(..), inj, prj) where
+module Dalek.Core (module Dalek.Core, Member, Members, C(..), X(..), inj, prj) where
 
 import           Control.Applicative
 import           Control.Monad.Trans.Maybe (MaybeT (..))
-import           Data.Functor.Const        (Const (..))
 import           Data.Open.Union
 import           Data.Text.Buildable       (Buildable (..))
 
 import qualified Dhall.Core                as Dh
+import           Dhall.TypeCheck           (X (..))
 
 -- TODO: IDEA: :git ghci command lol
 {-
@@ -68,6 +69,10 @@ nl .<|> nr = runMaybeT (MaybeT nl <|> MaybeT nr)
 sendEmbed :: forall fs s f. Member f fs => f (OpenExpr s fs) -> OpenExpr s fs
 sendEmbed a = Dh.Embed $ Rec $ inj a
 
+newtype C c a = C { unC :: c } deriving (Functor, Eq, Ord, Buildable, Show)
+
+xNormalizer :: Member (C X) fs => OpenNormalizer s fs
+xNormalizer = const Nothing
 --------------------------------------------------------------------------------
 -- instances
 

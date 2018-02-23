@@ -13,7 +13,7 @@ import           Data.Time.Format            (FormatTime, defaultTimeLocale,
                                               formatTime)
 import qualified Dhall.Core                  as Dh
 
-import           Dalek.Core                  (Member, OpenNormalizer, sendNorm, Const)
+import           Dalek.Core                  (Member, OpenNormalizer, sendNorm)
 import           Data.Time
 import           Data.Time.Calendar.WeekDate
 import           Dalek.Patterns
