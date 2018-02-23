@@ -102,7 +102,7 @@ test-suite spec
     , vector
     , insert-ordered-containers
 
-    , dhall
+    , dhall >= 1.9.1
     , dalek
   other-modules:
     Dalek.Exts.Time.TheSpec
