@@ -3,11 +3,12 @@ let
   pkgs = import (builtins.fetchTarball "github.com/NixOS/nixpkgs/archive/${rev}.tar.gz") {};
 in (pkgs.haskell.packages.ghc802.override {
    overrides = self: super: {
+     prettyprinter = self.callPackage ./nix/prettyprinter.nix {};
      dhall = self.callCabal2nix "dhall" (pkgs.fetchFromGitHub {
          owner = "ramirez7";
          repo = "dhall-haskell";
-         rev = "cfbff072501b36cdf9747bdcbb691fc2cf45c956";
-         sha256 = "14qaaysgw6j1ha5r7k5n5iwxms7xkp3665j4gl1m36n1f2fd091r";
+         rev = "2e303da45fc15edfef9127b59bf3b24a4a48e718";
+         sha256 = "1zwsrmga1z7bji75y6jshnq663ackkky025ck46cb8ainigl3hwy";
        }) {};
 
    };

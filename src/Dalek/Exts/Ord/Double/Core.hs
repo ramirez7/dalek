@@ -6,6 +6,7 @@
 
 module Dalek.Exts.Ord.Double.Core where
 
+import           Data.Scientific     (Scientific)
 import           Data.Text.Buildable (Buildable (..))
 import qualified Dhall.Core          as Dh
 
@@ -21,7 +22,7 @@ data DhDoubleOrd expr =
   | DhDoubleGTE
   deriving (Eq, Show, Enum, Bounded)
 
-toCmp :: DhDoubleOrd expr -> (Double -> Double -> Bool)
+toCmp :: DhDoubleOrd expr -> (Scientific -> Scientific -> Bool)
 toCmp = \case
   DhDoubleEQ -> (==)
   DhDoubleNEQ -> (/=)

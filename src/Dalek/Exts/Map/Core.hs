@@ -2,24 +2,26 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE PatternSynonyms            #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# LANGUAGE OverloadedStrings       #-}
 
 -- TODO: Map + Rolling(?)
 -- TODO: Extensible with Rec and Const and stuff
 -- TODO: dhall-haskell Eq and Ord instances
 module Dalek.Exts.Map.Core where
 
-import           Data.Map       (Map)
-import qualified Data.Map       as M
-import           Data.Text.Buildable  (Buildable (..))
+import           Data.Map            (Map)
+import qualified Data.Map            as M
+import           Data.Text.Buildable (Buildable (..))
 
 import           Dalek.Core
 import           Dalek.Patterns
-import qualified Dhall.Core     as Dh
+import qualified Dhall.Core          as Dh
+
+import           Dalek.Orphans       ()
 
 data DhMap expr =
   -- When type-checking this, we'll just have to say "trust me" by not inspecting

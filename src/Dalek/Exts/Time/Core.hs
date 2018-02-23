@@ -1,12 +1,13 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms   #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE FlexibleContexts   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PatternSynonyms       #-}
+{-# LANGUAGE RecordWildCards       #-}
 
 module Dalek.Exts.Time.Core where
 
-import qualified Data.Map                    as M
+import qualified Data.HashMap.Strict.InsOrd  as HMI
 import           Data.Text.Buildable         (Buildable (..))
 import qualified Data.Text.Lazy.Builder      as TLB
 import           Data.Time.Format            (FormatTime, defaultTimeLocale,
@@ -14,9 +15,9 @@ import           Data.Time.Format            (FormatTime, defaultTimeLocale,
 import qualified Dhall.Core                  as Dh
 
 import           Dalek.Core                  (Member, OpenNormalizer, sendNorm)
+import           Dalek.Patterns
 import           Data.Time
 import           Data.Time.Calendar.WeekDate
-import           Dalek.Patterns
 
 data DhTime expr =
     DhUTCTime
@@ -39,7 +40,7 @@ normalizer = sendNorm $ \case
     Just $ Dh.Embed $ DhLocalTimeLit (utcToLocalTime tz t)
   Apps [E DhLocalTimeTimeOfDay, E (DhLocalTimeLit LocalTime{..})] ->
     let TimeOfDay{..} = localTimeOfDay
-     in Just $ Dh.RecordLit $ M.fromList
+     in Just $ Dh.RecordLit $ HMI.fromList
           [ ("hour", Dh.IntegerLit $ fromIntegral todHour)
           , ("minute", Dh.IntegerLit $ fromIntegral todMin)
           ]

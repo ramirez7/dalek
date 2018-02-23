@@ -6,7 +6,7 @@ module Dalek.Exts.Time.TheSpec (spec) where
 
 import           Dalek.SpecUtils
 
-import qualified Data.Map                  as M
+import qualified Data.HashMap.Strict.InsOrd as HMI
 import           Data.Time
 
 import qualified Dhall.Context             as Dh
@@ -107,7 +107,7 @@ spec = describe "end-to-end" $ do
       expr <- checked parser typer [i|
         LocalTime/timeOfDay $(2017-12-04T00:00:00)
       |]
-      let expected = Dh.RecordLit $ M.fromList
+      let expected = Dh.RecordLit $ HMI.fromList
            [ ("hour", Dh.IntegerLit 0)
            , ("minute", Dh.IntegerLit 0)
            ]

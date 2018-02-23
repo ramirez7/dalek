@@ -10,24 +10,25 @@
 -- Interop that requires extensions is in @Dalek.Exts.*.Interop@ modules
 module Dalek.Interop where
 
-import           Control.Exception      (throwIO)
-import           Control.Monad          (guard, unless)
-import           Data.Functor.Alt       (Alt (..))
-import           Data.Functor.Apply     (Apply (..))
-import qualified Data.Map               as M
-import           Data.Text.Buildable    (Buildable (..))
+import           Control.Exception          (throwIO)
+import           Control.Monad              (guard, unless)
+import           Data.Functor.Alt           (Alt (..))
+import           Data.Functor.Apply         (Apply (..))
+import qualified Data.HashMap.Strict.InsOrd as HMI
+import           Data.Scientific
 import qualified Data.Text
-import           Data.Text.Lazy         (Text)
-import qualified Data.Text.Lazy         as TL
-import qualified Data.Text.Lazy.Builder as TLB
-import           System.IO.Error        (userError)
+import           Data.Text.Buildable        (Buildable (..))
+import           Data.Text.Lazy             (Text)
+import qualified Data.Text.Lazy             as TL
+import qualified Data.Text.Lazy.Builder     as TLB
 import qualified Data.Vector
+import           System.IO.Error            (userError)
 
-import           Dhall                  (Natural)
-import qualified Dhall.Context          as Dh
-import qualified Dhall.Core             as Dh
-import           Dhall.Parser           (Src, exprA)
-import qualified Dhall.TypeCheck        as Dh
+import           Dhall                      (Natural)
+import qualified Dhall.Context              as Dh
+import qualified Dhall.Core                 as Dh
+import           Dhall.Parser               (Src, exprA)
+import qualified Dhall.TypeCheck            as Dh
 
 import           Dalek.Core
 import           Dalek.Parser
@@ -94,9 +95,9 @@ record :: Text
        -> OutputType fs a
 record field fieldTy = OutputType {
     extract = \case
-      Dh.RecordLit vals -> M.lookup field vals >>= extract fieldTy
+      Dh.RecordLit vals -> HMI.lookup field vals >>= extract fieldTy
       _ -> Nothing
-  , expected = Dh.Record $ M.singleton field (expected fieldTy)
+  , expected = Dh.Record $ HMI.singleton field (expected fieldTy)
 }
 
 -- | Useful with the 'Alt' instance. For instance, @Either Bool Double@ can be parsed with:
@@ -115,7 +116,7 @@ union tag ctor tagTy = OutputType {
         a <- extract tagTy val
         pure $ ctor a
       _ -> Nothing
-  , expected = Dh.Union $ M.singleton tag (expected tagTy)
+  , expected = Dh.Union $ HMI.singleton tag (expected tagTy)
 }
 
 raw :: OpenExpr Src fs -- Expected Dhall type
@@ -138,10 +139,18 @@ integer = OutputType {
   , expected = Dh.Integer
 }
 
+scientific :: OutputType fs Scientific
+scientific = OutputType {
+    extract = \case
+      Dh.DoubleLit x -> Just x
+      _ -> Nothing
+  , expected = Dh.Double
+}
+
 double :: OutputType fs Double
 double = OutputType {
     extract = \case
-      Dh.DoubleLit x -> Just x
+      Dh.DoubleLit x -> Just (toRealFloat x)
       _ -> Nothing
   , expected = Dh.Double
 }
@@ -193,9 +202,9 @@ string = TL.unpack <$> lazyText
 unit :: OutputType fs ()
 unit = OutputType {
     extract = \case
-      Dh.RecordLit fields | M.null fields -> Just ()
+      Dh.RecordLit fields | HMI.null fields -> Just ()
       _ -> Nothing
-  , expected = Dh.Record M.empty
+  , expected = Dh.Record HMI.empty
 }
 
 pair :: OutputType fs a -> OutputType fs b -> OutputType fs (a, b)

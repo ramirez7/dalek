@@ -5,8 +5,8 @@
 
 module Dalek.Exts.Time.TypeCheck where
 
-import qualified Data.Map             as M
-import qualified Dhall.Core           as Dh
+import qualified Data.HashMap.Strict.InsOrd as HMI
+import qualified Dhall.Core                 as Dh
 
 import           Dalek.Core
 import           Dalek.Exts.Time.Core
@@ -22,4 +22,4 @@ typer = \case
   DhTimeZoneLit _ -> sendEmbed DhTimeZone
   DhLocalTimeDayOfWeek -> Dh.Pi "_" (sendEmbed DhLocalTime) Dh.Integer
   DhUTCTimeToLocalTime -> Dh.Pi "_" (sendEmbed DhTimeZone) (Dh.Pi "_" (sendEmbed DhUTCTime) (sendEmbed DhLocalTime))
-  DhLocalTimeTimeOfDay -> Dh.Pi "_" (sendEmbed DhLocalTime) (Dh.Record $ M.fromList [("hour", Dh.Integer), ("minute", Dh.Integer)])
+  DhLocalTimeTimeOfDay -> Dh.Pi "_" (sendEmbed DhLocalTime) (Dh.Record $ HMI.fromList [("hour", Dh.Integer), ("minute", Dh.Integer)])

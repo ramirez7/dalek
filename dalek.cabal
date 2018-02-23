@@ -45,6 +45,9 @@ library
     Dalek.Patterns
 
     Dalek.Interop
+
+    -- ick
+    Dalek.Orphans
     -- EVENTUALLY REMOVE:
     Dhall.ParserUtils
 
@@ -71,6 +74,8 @@ library
     , contravariant
     , semigroupoids
     , vector
+    , insert-ordered-containers
+    , scientific
     -- For its [* -> *] Open Union
     , freer
   hs-source-dirs:      src
@@ -95,6 +100,7 @@ test-suite spec
     , containers
     , semigroupoids
     , vector
+    , insert-ordered-containers
 
     , dhall
     , dalek

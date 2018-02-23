@@ -35,6 +35,9 @@ spec = describe "OutputType" $ do
   it "integer" $ do
     x <- xInput integer "-2"
     x `shouldBe` -2
+  it "scientific" $ do
+    x <- xInput scientific "2.2"
+    x `shouldBe` 2.2
   it "double" $ do
     x <- xInput double "2.2"
     x `shouldBe` 2.2
