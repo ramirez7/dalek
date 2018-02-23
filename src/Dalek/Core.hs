@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
@@ -73,6 +74,72 @@ newtype C c a = C { unC :: c } deriving (Functor, Eq, Ord, Buildable, Show)
 
 xNormalizer :: Member (C X) fs => OpenNormalizer s fs
 xNormalizer = const Nothing
+--------------------------------------------------------------------------------
+-- unNote
+
+-- Remove all 'Note's from the AST
+unNote :: Dh.Expr s a -> Dh.Expr X a
+unNote = \case
+  Dh.Note _ e -> unNote e
+  Dh.Const x -> Dh.Const x
+  Dh.Var x -> Dh.Var x
+  Dh.Lam t e1 e2 -> Dh.Lam t (unNote e1) (unNote e2)
+  Dh.Pi t e1 e2 -> Dh.Pi t (unNote e1) (unNote e2)
+  Dh.App e1 e2 -> Dh.App (unNote e1) (unNote e2)
+  Dh.Let t me1 e2 e3 -> Dh.Let t (fmap unNote me1) (unNote e2) (unNote e3)
+  Dh.Annot e1 e2 -> Dh.Annot (unNote e1) (unNote e2)
+  Dh.Bool -> Dh.Bool
+  Dh.BoolLit b -> Dh.BoolLit b
+  Dh.BoolAnd e1 e2 -> Dh.BoolAnd (unNote e1) (unNote e2)
+  Dh.BoolOr e1 e2 -> Dh.BoolOr (unNote e1) (unNote e2)
+  Dh.BoolEQ e1 e2 -> Dh.BoolEQ (unNote e1) (unNote e2)
+  Dh.BoolNE e1 e2 -> Dh.BoolNE (unNote e1) (unNote e2)
+  Dh.BoolIf e1 e2 e3 -> Dh.BoolIf (unNote e1) (unNote e2) (unNote e3)
+  Dh.Natural -> Dh.Natural
+  Dh.NaturalLit n -> Dh.NaturalLit n
+  Dh.NaturalFold -> Dh.NaturalFold
+  Dh.NaturalBuild -> Dh.NaturalBuild
+  Dh.NaturalIsZero -> Dh.NaturalIsZero
+  Dh.NaturalEven -> Dh.NaturalEven
+  Dh.NaturalOdd -> Dh.NaturalOdd
+  Dh.NaturalToInteger -> Dh.NaturalToInteger
+  Dh.NaturalShow -> Dh.NaturalShow
+  Dh.NaturalPlus e1 e2 -> Dh.NaturalPlus (unNote e1) (unNote e2)
+  Dh.NaturalTimes e1 e2 -> Dh.NaturalTimes (unNote e1) (unNote e2)
+  Dh.Integer -> Dh.Integer
+  Dh.IntegerLit i -> Dh.IntegerLit i
+  Dh.IntegerShow -> Dh.IntegerShow
+  Dh.Double -> Dh.Double
+  Dh.DoubleLit d -> Dh.DoubleLit d
+  Dh.DoubleShow -> Dh.DoubleShow
+  Dh.Text -> Dh.Text
+  Dh.TextLit (Dh.Chunks chunks final) -> Dh.TextLit $ Dh.Chunks (fmap (\(t, e) -> (t, unNote e)) chunks) final
+  Dh.TextAppend e1 e2 -> Dh.TextAppend (unNote e1) (unNote e2)
+  Dh.List -> Dh.List
+  Dh.ListLit me1 ve2 -> Dh.ListLit (fmap unNote me1) (fmap unNote ve2)
+  Dh.ListAppend e1 e2 -> Dh.ListAppend (unNote e1) (unNote e2)
+  Dh.ListBuild -> Dh.ListBuild
+  Dh.ListFold -> Dh.ListFold
+  Dh.ListLength -> Dh.ListLength
+  Dh.ListHead -> Dh.ListHead
+  Dh.ListLast -> Dh.ListLast
+  Dh.ListIndexed -> Dh.ListIndexed
+  Dh.ListReverse -> Dh.ListReverse
+  Dh.Optional -> Dh.Optional
+  Dh.OptionalLit e1 ve2  -> Dh.OptionalLit (unNote e1) (fmap unNote ve2)
+  Dh.OptionalFold -> Dh.OptionalFold
+  Dh.OptionalBuild -> Dh.OptionalBuild
+  Dh.Record mpe -> Dh.Record (fmap unNote mpe)
+  Dh.RecordLit mpe -> Dh.RecordLit (fmap unNote mpe)
+  Dh.Union mpe -> Dh.Union (fmap unNote mpe)
+  Dh.UnionLit t e1 mpe2 -> Dh.UnionLit t (unNote e1) (fmap unNote mpe2)
+  Dh.Combine e1 e2 -> Dh.Combine (unNote e1) (unNote e2)
+  Dh.Prefer e1 e2 -> Dh.Prefer (unNote e1) (unNote e2)
+  Dh.Merge e1 e2 me3 -> Dh.Merge (unNote e1) (unNote e2) (fmap unNote me3)
+  Dh.Constructors e -> Dh.Constructors (unNote e)
+  Dh.Field e t -> Dh.Field (unNote e) t
+  Dh.Embed a -> Dh.Embed a
+
 --------------------------------------------------------------------------------
 -- instances
 
