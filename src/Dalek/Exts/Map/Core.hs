@@ -39,12 +39,12 @@ data DhMap expr =
 
 normalizer :: (Ord s, Ord (Open s fs), Member DhMap fs) => OpenNormalizer s fs
 normalizer = \case
-  ER DhMapTy -> Nothing
-  Apps [ER DhMapEmpty, kty, vty] -> Just $ sendEmbed $ DhMapLit kty vty mempty
-  Apps [ER DhMapEmpty, kty, vty, k, v] -> Just $ sendEmbed $ DhMapLit kty vty (M.singleton k v)
-  Apps [ER DhMapLookup, _, _, k, ER DhMapLit{..}] -> Just $ maybe (Dh.OptionalLit _mapValTy mempty) (Dh.OptionalLit _mapValTy . pure) $ M.lookup k _mapLit
-  Apps [ER DhMapInsert, _, _, k, v, ER m@DhMapLit{_mapLit=curr}] -> Just $ sendEmbed $ m { _mapLit = M.insert k v curr }
-  Apps [ER DhMapFromList, _, _, Dh.ListLit _ _] -> undefined -- TODO
+  E DhMapTy -> Nothing
+  Apps [E DhMapEmpty, kty, vty] -> Just $ sendEmbed $ DhMapLit kty vty mempty
+  Apps [E DhMapEmpty, kty, vty, k, v] -> Just $ sendEmbed $ DhMapLit kty vty (M.singleton k v)
+  Apps [E DhMapLookup, _, _, k, E DhMapLit{..}] -> Just $ maybe (Dh.OptionalLit _mapValTy mempty) (Dh.OptionalLit _mapValTy . pure) $ M.lookup k _mapLit
+  Apps [E DhMapInsert, _, _, k, v, E m@DhMapLit{_mapLit=curr}] -> Just $ sendEmbed $ m { _mapLit = M.insert k v curr }
+  Apps [E DhMapFromList, _, _, Dh.ListLit _ _] -> undefined -- TODO
   _ -> Nothing
 
 instance Buildable expr => Buildable (DhMap expr) where

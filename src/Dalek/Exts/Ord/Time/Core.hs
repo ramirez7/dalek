@@ -36,7 +36,7 @@ toCmp = \case
 
 normalizer :: Members '[DhUTCTimeOrd, DhTime] as => OpenNormalizer s as
 normalizer = \case
-  Apps [ER dhOrd, ER (DhUTCTimeLit x), ER (DhUTCTimeLit y)] ->
+  Apps [E dhOrd, E (DhUTCTimeLit x), E (DhUTCTimeLit y)] ->
     Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing
 

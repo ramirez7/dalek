@@ -33,7 +33,7 @@ toCmp = \case
 
 normalizer :: Member DhNaturalOrd fs => OpenNormalizer s fs
 normalizer = \case
-  Apps [ER dhOrd, Dh.NaturalLit x, Dh.NaturalLit y] -> Just $ Dh.BoolLit $ (toCmp dhOrd) x y
+  Apps [E dhOrd, Dh.NaturalLit x, Dh.NaturalLit y] -> Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing
 
 instance Buildable (DhNaturalOrd expr) where

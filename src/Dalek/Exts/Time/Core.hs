@@ -14,7 +14,7 @@ import           Data.Time.Format            (FormatTime, defaultTimeLocale,
                                               formatTime)
 import qualified Dhall.Core                  as Dh
 
-import           Dalek.Core                  (Member, OpenNormalizer, sendNorm)
+import           Dalek.Core                  (Member, OpenNormalizer, sendEmbed)
 import           Dalek.Patterns
 import           Data.Time
 import           Data.Time.Calendar.WeekDate
@@ -32,12 +32,12 @@ data DhTime expr =
   deriving (Eq, Ord, Show)
 
 normalizer :: Member DhTime fs => OpenNormalizer s fs
-normalizer = sendNorm $ \case
+normalizer = \case
   Apps [E DhLocalTimeDayOfWeek, E (DhLocalTimeLit lt)] ->
     let (_, _, dayOfWeek) = toWeekDate (localDay lt)
      in Just $ Dh.IntegerLit (fromIntegral dayOfWeek)
   Apps [E DhUTCTimeToLocalTime, E (DhTimeZoneLit tz), E (DhUTCTimeLit t)] ->
-    Just $ Dh.Embed $ DhLocalTimeLit (utcToLocalTime tz t)
+    Just $ sendEmbed $ DhLocalTimeLit (utcToLocalTime tz t)
   Apps [E DhLocalTimeTimeOfDay, E (DhLocalTimeLit LocalTime{..})] ->
     let TimeOfDay{..} = localTimeOfDay
      in Just $ Dh.RecordLit $ HMI.fromList

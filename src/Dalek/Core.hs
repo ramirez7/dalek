@@ -13,10 +13,34 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
-module Dalek.Core (module Dalek.Core, Member, Members, C(..), X(..), inj, prj) where
+module Dalek.Core
+  ( -- * Extensible Normalization
+    OpenNormalizer
+  , Open
+  , OpenExpr
+  , sendEmbed
+  , (.<|>)
+  -- * Note
+  , unNote
+  , reNote
+  -- * Utilities
+  , C (..)
+  , xNormalizer
+  -- * Re-exports
+  , Member
+  , Members
+  , X(..)
+  , inj
+  , prj
+  -- * Internals
+  , OrphanUnion (..)
+  , Rec (..)
+  ,
+  ) where
 
 import           Control.Applicative
 import           Control.Monad.Trans.Maybe (MaybeT (..))
+import           Data.Bifunctor            (first)
 import           Data.Open.Union
 import           Data.Text.Buildable       (Buildable (..))
 
@@ -34,50 +58,42 @@ Id (Dh.Normalizer Int Bool) :: *
 = Dh.Expr Int Bool -> Maybe (Dh.Expr Int Bool)
 -}
 
+
 -- | Inspired by the "Term trick":
 --
 -- http://blog.sumtypeofway.com/recursion-schemes-part-41-2-better-living-through-base-functors/
+--
+-- This allows us to write our extensions @* -> *@ where the type variable
+-- is the Dhall AST itself (along with all extensions..including the one we're writing)
+--
+-- This encoding allows for extensions to have recursive structures of extended Dhall ASTs
+-- (for instance, containers like Map/Seq or custom AST syntax)
 newtype Rec s f = Rec { unRec :: f (Dh.Expr s (Rec s f)) }
-
-mapRec :: forall s f g. Functor g => (forall a. f a -> g a) -> Rec s f -> Rec s g
-mapRec f (Rec x) = (Rec (fmap (fmap (mapRec f)) (f x)))
 
 type Open s fs = Rec s (Union fs)
 type OpenExpr s fs = Dh.Expr s (Open s fs)
 
 type OpenNormalizer s (fs :: [* -> *]) = Dh.Normalizer s (Open s fs)
 
--- | This is useful for when we want to write normalizers ONLY in terms of
--- vanilla Dhall + our embedded a. Time is like that.
---
--- For normalizers with dependencies on other extensions, we'll have to be
--- more generic. Maybe some ViewPatterns / PatternSynonyms could help make those
--- still as nice to write as the current Apps versions (along with some extra
--- Member constraints)
---
--- Things like Map especially can't use this.
-sendNorm :: forall s f fs. Member f fs => Dh.Normalizer s (f (OpenExpr s fs)) -> OpenNormalizer s fs
-sendNorm f = \exprU -> do
-  matched <- traverse (prj . unRec) exprU
-  normalized <- f matched
-  pure $ fmap (Rec . inj) normalized
-
 infixl 3 .<|>
--- | TODO: Doc comment
+-- | Normalizer alternative. Prefers the left-hand side.
 (.<|>) :: Dh.Normalizer s a -> Dh.Normalizer s a -> Dh.Normalizer s a
 nl .<|> nr = runMaybeT (MaybeT nl <|> MaybeT nr)
 
+-- | Embed a value into an 'OpenExpr'
 sendEmbed :: forall fs s f. Member f fs => f (OpenExpr s fs) -> OpenExpr s fs
 sendEmbed a = Dh.Embed $ Rec $ inj a
 
+-- | The same as 'Data.Functor.Const' but with different instances
 newtype C c a = C { unC :: c } deriving (Functor, Eq, Ord, Buildable, Show)
 
+-- | Normalizer for lifted 'X'
 xNormalizer :: Member (C X) fs => OpenNormalizer s fs
 xNormalizer = const Nothing
 --------------------------------------------------------------------------------
--- unNote
+-- Note stuff
 
--- Remove all 'Note's from the AST
+-- | Remove all 'Note's from the AST
 unNote :: Dh.Expr s a -> Dh.Expr X a
 unNote = \case
   Dh.Note _ e -> unNote e
@@ -140,6 +156,13 @@ unNote = \case
   Dh.Field e t -> Dh.Field (unNote e) t
   Dh.Embed a -> Dh.Embed a
 
+-- | Convert a 'Note'-less AST to any other type of Noted AST
+--
+-- @
+-- 'reNote' = 'first' 'absurd'
+-- @
+reNote :: Dh.Expr X a -> Dh.Expr s a
+reNote = first absurd
 --------------------------------------------------------------------------------
 -- instances
 
@@ -155,6 +178,7 @@ instance Ord (OrphanUnion fs (OpenExpr s fs)) => Ord (Open s fs) where
 instance Buildable (OrphanUnion fs (OpenExpr s fs)) => Buildable (Open s fs) where
   build (Rec x) = build (OrphanUnion x)
 
+-- | Newtype wrapper 'OpeneUnion' so we can get some non-orphan instances we need
 newtype OrphanUnion fs a = OrphanUnion (Union fs a)
 
 instance (Show (f a)) => Show (OrphanUnion '[f] a) where

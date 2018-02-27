@@ -8,14 +8,39 @@
 -- | Dalek <-> Haskell interop
 --
 -- Interop that requires extensions is in @Dalek.Exts.*.Interop@ modules
-module Dalek.Interop where
+module Dalek.Interop
+  ( input
+  , OutputType (..)
+  , InputType (..)
+  -- * OutputType combinators
+  , raw
+  , bool
+  , integer
+  , natural
+  , scientific
+  , double
+  , lazyText
+  , strictText
+  , string
+  , optional
+  , list
+  , vector
+  , unit
+  , pair
+  , function
+  , record
+  , union
+  -- * WIP
+  , FromDhall (..)
+  , ToDhall (..)
+  , InteropOptions (..)) where
 
 import           Control.Exception          (throwIO)
 import           Control.Monad              (guard, unless)
 import           Data.Functor.Alt           (Alt (..))
 import           Data.Functor.Apply         (Apply (..))
 import qualified Data.HashMap.Strict.InsOrd as HMI
-import           Data.Scientific
+import           Data.Scientific            (Scientific, toRealFloat)
 import qualified Data.Text
 import           Data.Text.Buildable        (Buildable (..))
 import           Data.Text.Lazy             (Text)
@@ -35,11 +60,11 @@ import           Dalek.Parser
 import           Dhall.ParserUtils
 
 input :: (Eq (Open Src fs), Buildable (Open Src fs))
-      => OpenNormalizer Src fs
-      -> OpenParser Src fs
-      -> Dh.Typer Src (Open Src fs)
-      -> OutputType fs a
-      -> Text
+      => OpenNormalizer Src fs -- ^ Custom normalizer
+      -> OpenParser Src fs -- ^ Custom parser
+      -> Dh.Typer Src (Open Src fs) -- ^ Custom typer
+      -> OutputType fs a -- ^ 'OutputType' to unmarshal to
+      -> Text -- ^ Dhall program
       -> IO a
 input n p t outTy prg = do
   expr <- case parseDhallStr (exprA p) (TL.unpack prg) of
@@ -56,6 +81,7 @@ input n p t outTy prg = do
     Just a  -> pure a
     Nothing -> throwIO $ userError "Bad extract"
 
+-- | Specification of how to unmarshal from a Dhall value to a Haskell value
 data OutputType fs a = OutputType
     { extract  :: OpenExpr Src fs -> Maybe a
     -- ^ Extracts Haskell value from the Dalek expression
@@ -64,7 +90,12 @@ data OutputType fs a = OutputType
     }
     deriving (Functor)
 
--- | This instance is only useful for record parsing
+-- | If the 'OutputType's are expecting 'Record's, this instance will combine
+-- the record types and extract them both.
+--
+-- Meant to be used with the 'record' combinator
+--
+-- Otherwise, it will behave in undefined (but still lawful) ways
 instance Apply (OutputType fs) where
   fa2b <.> fa = OutputType {
       extract = \expr -> do
@@ -76,19 +107,28 @@ instance Apply (OutputType fs) where
         (x, _)                     -> x
   }
 
--- | This instance is only useful for union parsing
+
+-- | If the 'OutputType's are expecting 'Union's, this instance will combine
+-- the union types and try to parse each case.
+--
+-- Meant to be used with the 'union' combinator
+--
+-- Otherwise, it just prefers the left-hand side
 instance Alt (OutputType fs) where
-  lhs <!> rhs = OutputType {
-      extract = \expr -> extract lhs expr <!> extract rhs expr
-    , expected = case (expected lhs, expected rhs) of
-        (Dh.Union x, Dh.Union y) -> Dh.Union $ x `mappend` y
-        (x, _)                   -> x
-  }
+  lhs <!> rhs = case (expected lhs, expected rhs) of
+    (Dh.Union lTy, Dh.Union rTy) -> OutputType {
+          extract = \expr -> extract lhs expr <!> extract rhs expr
+        , expected = Dh.Union $ lTy `mappend` rTy
+      }
+    (lTy, _j) -> OutputType {
+          extract = extract lhs
+        , expected = lTy
+      }
 
 -- | Useful with the 'Apply' instance. For instance, @(Bool, Double)@ can be parsed with:
 --
 -- @
--- (,) <$> record "_1" bool <.> record "_2" double
+-- (,) <$> 'record' \"_1\" 'bool' '<.>' record \"_2\" 'double'
 -- @
 record :: Text
        -> OutputType fs a
@@ -103,7 +143,7 @@ record field fieldTy = OutputType {
 -- | Useful with the 'Alt' instance. For instance, @Either Bool Double@ can be parsed with:
 --
 -- @
--- union "Left" Left bool <!> union "Right" Right double
+-- 'union' \"Left\" 'Left' 'bool' '<!>' 'union' \"Right\" 'Right' 'double'
 -- @
 union :: Text
       -> (a -> r)
@@ -119,10 +159,15 @@ union tag ctor tagTy = OutputType {
   , expected = Dh.Union $ HMI.singleton tag (expected tagTy)
 }
 
-raw :: OpenExpr Src fs -- Expected Dhall type
+-- | Extract a Dhall `Expr` as-is. All that will be done is checking against
+-- the provided type.
+--
+-- Useful when parsing parametric Dhall programs
+raw :: OpenExpr Src fs -- ^ Expected Dhall type
      -> OutputType fs (OpenExpr Src fs)
 raw ty = OutputType Just ty
 
+-- | Extract a 'Bool'
 bool :: OutputType fs Bool
 bool = OutputType {
     extract = \case
@@ -131,6 +176,7 @@ bool = OutputType {
   , expected = Dh.Bool
 }
 
+-- | Extract an 'Integer'
 integer :: OutputType fs Integer
 integer = OutputType {
     extract = \case
@@ -139,6 +185,7 @@ integer = OutputType {
   , expected = Dh.Integer
 }
 
+-- | Extract a 'Scientific'
 scientific :: OutputType fs Scientific
 scientific = OutputType {
     extract = \case
@@ -147,6 +194,7 @@ scientific = OutputType {
   , expected = Dh.Double
 }
 
+-- | Extract a 'Double'
 double :: OutputType fs Double
 double = OutputType {
     extract = \case
@@ -155,6 +203,7 @@ double = OutputType {
   , expected = Dh.Double
 }
 
+-- | Extract a 'Natural'
 natural :: OutputType fs Natural
 natural = OutputType {
     extract = \case
@@ -163,6 +212,7 @@ natural = OutputType {
   , expected = Dh.Natural
 }
 
+-- | Extract a lazy 'Text'
 lazyText :: OutputType fs Text
 lazyText = OutputType {
     extract = \case
@@ -171,9 +221,11 @@ lazyText = OutputType {
   , expected = Dh.Text
 }
 
+-- | Extract a strict 'Data.Text.Text'
 strictText :: OutputType fs Data.Text.Text
 strictText = TL.toStrict <$> lazyText
 
+-- | Extract a 'Maybe'
 optional :: OutputType fs a -> OutputType fs (Maybe a)
 optional aTy = OutputType {
     extract = \case
@@ -186,9 +238,11 @@ optional aTy = OutputType {
   , expected = Dh.App Dh.Optional (expected aTy)
 }
 
+-- | Extract a list
 list :: OutputType fs a -> OutputType fs [a]
 list = fmap Data.Vector.toList . vector
 
+-- | Extract a 'Vector'
 vector :: OutputType fs a -> OutputType fs (Data.Vector.Vector a)
 vector aTy = OutputType {
     extract = \case
@@ -196,9 +250,12 @@ vector aTy = OutputType {
       _ -> Nothing
   , expected = Dh.App Dh.List (expected aTy)
 }
+
+-- | Extract a 'String'
 string :: OutputType fs String
 string = TL.unpack <$> lazyText
 
+-- | Extract @()@, as the empty record @{=}@
 unit :: OutputType fs ()
 unit = OutputType {
     extract = \case
@@ -207,12 +264,15 @@ unit = OutputType {
   , expected = Dh.Record HMI.empty
 }
 
+-- | Extract a Tuple, as the Dhall @{_1 : a, _2 : b }@
 pair :: OutputType fs a -> OutputType fs b -> OutputType fs (a, b)
 pair aTy bTy = (,) <$> record "_1" aTy <.> record "_2" bTy
 
+-- | Extract a function
 function :: OpenNormalizer Src fs -> InputType fs a -> OutputType fs b -> OutputType fs (a -> b)
 function nrm inTy outTy = undefined
 
+-- | Specification of how to marshal from a Haskell value to a Dhall value
 data InputType fs a = InputType
     { embed    :: a -> OpenExpr Src fs
     -- ^ Embeds a Haskell value as a Dalek expression
@@ -220,12 +280,15 @@ data InputType fs a = InputType
     -- ^ Dalek type of the Haskell value
     }
 
+-- | WIP: Equivalent of dhall's 'Interpret' type class
 class FromDhall fs a where
   fromDhall :: InteropOptions -> OutputType fs a
 
+-- | WIP: Equivalent of dhall's 'Inject' type class
 class ToDhall fs a where
   toDhall :: InteropOptions -> InputType fs a
 
+-- | WIP: Equivalent of dhall's 'InterpretOptions' type
 data InteropOptions = InteropOptions
     { fieldModifier       :: Text -> Text
     -- ^ Function used to transform Haskell field names into their corresponding

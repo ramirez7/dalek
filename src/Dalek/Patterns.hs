@@ -5,37 +5,44 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ViewPatterns          #-}
 
-module Dalek.Patterns where
+-- | Pattern Synonyms that help with writing your own Dhall extensions
+module Dalek.Patterns
+  ( pattern Apps
+  , pattern E
+  , pattern EC
+  ) where
 
 import qualified Dhall.Core as Dh
 
 import           Dalek.Core
 
+{-|
+
+Application is implemented in Dhall with currying, so multiple-arg applications
+result in nested 'App' constructors. This can become a pain because custom
+Dhall normalization always requires the programmer to pattern match on 'App'.
+
+This pattern helps clean up pattern matching on arbitrarily long applications:
+
+@
+Apps [f, x] = App f x
+Apps [f, x, y] = App (App f x) y
+Apps [f, x, y, z] = App (App (App f x) y) z
+Apps [f] = NEVER MATCHES
+Apps [] = NEVER MATCHES
+@
+-}
 pattern Apps :: [Dh.Expr t a] -> Dh.Expr t a
 pattern Apps xs <- (gatherApps -> Just xs)
 -- TODO: Make bidirectional?
 
-{-
-Apps [x, y] = App x y
-Apps [x, y, z] = App (App x y) z
-Apps [x, y, z, w] = App (App (App x y) z) w
-Apps [x] = NO
-Apps [] = NO
+-- | Pattern meant to help with matching on 'Embed'ded 'OpenUnion' terms.
+pattern E :: forall f s fs. Member f fs => f (Dh.Expr s (Open s fs)) -> Dh.Expr s (Open s fs)
+pattern E a <- Dh.Embed (prj . unRec -> Just a)
 
-f x y z
-App (App (App (f x)) y) z
-Apps [f, x, y, z]
--}
-
--- | TODO: I don't think this has a place in this new higher-kinded world
-pattern E :: a -> Dh.Expr t a
-pattern E a = Dh.Embed a
-
+-- | Helpful for matching on a kind @*@ term that has been lifted to @* -> *@ using 'C'
 pattern EC :: forall a s fs. Member (C a) fs => a -> Dh.Expr s (Open s fs)
 pattern EC a <- Dh.Embed (prj . unRec -> Just (C a))
-
-pattern ER :: forall f s fs. Member f fs => f (Dh.Expr s (Open s fs)) -> Dh.Expr s (Open s fs)
-pattern ER a <- Dh.Embed (prj . unRec -> Just a)
 
 gatherApps :: Dh.Expr t a -> Maybe [Dh.Expr t a]
 gatherApps = \case
