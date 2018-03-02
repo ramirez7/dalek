@@ -6,11 +6,12 @@ packages:
 - location:
     # not in Hackage
     git: https://github.com/ramirez7/dhall-haskell.git
-    commit: b47dedfbd4408a2dc07d4df08483947a3fb8b354
+    commit: 2e303da45fc15edfef9127b59bf3b24a4a48e718
   extra-dep: true
 
 extra-deps:
-- prettyprinter-1.1.1
+- prettyprinter-1.2.0.1
+- prettyprinter-ansi-terminal-1.1.1.2
 
 nix:
   enable: true

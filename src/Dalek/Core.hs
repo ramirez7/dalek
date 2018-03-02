@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -26,6 +27,7 @@ module Dalek.Core
   -- * Utilities
   , C (..)
   , xNormalizer
+  , OpenSatisfies
   -- * Re-exports
   , Member
   , Members
@@ -33,7 +35,7 @@ module Dalek.Core
   , inj
   , prj
   -- * Internals
-  , OrphanUnion (..)
+  , DalekUnion (..)
   , Rec (..)
   ,
   ) where
@@ -41,6 +43,7 @@ module Dalek.Core
 import           Control.Applicative
 import           Control.Monad.Trans.Maybe (MaybeT (..))
 import           Data.Bifunctor            (first)
+import           Data.Kind                 (Constraint)
 import           Data.Open.Union
 import           Data.Text.Buildable       (Buildable (..))
 
@@ -92,6 +95,10 @@ xNormalizer :: Member (C X) fs => OpenNormalizer s fs
 xNormalizer = const Nothing
 --------------------------------------------------------------------------------
 -- Note stuff
+
+-- Will need some instances on those fs to do this
+unNoteOpen :: OpenExpr s fs -> OpenExpr X fs
+unNoteOpen = undefined
 
 -- | Remove all 'Note's from the AST
 unNote :: Dh.Expr s a -> Dh.Expr X a
@@ -166,57 +173,59 @@ reNote = first absurd
 --------------------------------------------------------------------------------
 -- instances
 
-instance Show (OrphanUnion fs (OpenExpr s fs)) => Show (Open s fs) where
-  show (Rec x) = show (OrphanUnion x)
+type OpenSatisfies (c :: * -> Constraint) s fs = c (DalekUnion fs (OpenExpr s fs))
 
-instance Eq (OrphanUnion fs (OpenExpr s fs)) => Eq (Open s fs) where
-  (Rec x) == (Rec y) = OrphanUnion x == OrphanUnion y
+instance Show (DalekUnion fs (OpenExpr s fs)) => Show (Open s fs) where
+  show (Rec x) = show (DalekUnion x)
 
-instance Ord (OrphanUnion fs (OpenExpr s fs)) => Ord (Open s fs) where
-  compare (Rec x) (Rec y) = compare (OrphanUnion x) (OrphanUnion y)
+instance Eq (DalekUnion fs (OpenExpr s fs)) => Eq (Open s fs) where
+  (Rec x) == (Rec y) = DalekUnion x == DalekUnion y
 
-instance Buildable (OrphanUnion fs (OpenExpr s fs)) => Buildable (Open s fs) where
-  build (Rec x) = build (OrphanUnion x)
+instance Ord (DalekUnion fs (OpenExpr s fs)) => Ord (Open s fs) where
+  compare (Rec x) (Rec y) = compare (DalekUnion x) (DalekUnion y)
 
--- | Newtype wrapper 'OpeneUnion' so we can get some non-orphan instances we need
-newtype OrphanUnion fs a = OrphanUnion (Union fs a)
+instance Buildable (DalekUnion fs (OpenExpr s fs)) => Buildable (Open s fs) where
+  build (Rec x) = build (DalekUnion x)
 
-instance (Show (f a)) => Show (OrphanUnion '[f] a) where
-  show (OrphanUnion x) = show $ extract x
+-- | Newtype wrapper 'OpenUnion' so we can get some non-orphan instances we need
+newtype DalekUnion fs a = DalekUnion (Union fs a)
 
-instance {-# OVERLAPPABLE #-} (Show (f a), Show (OrphanUnion fs a)) => Show (OrphanUnion (f ': fs) a) where
-  show (OrphanUnion x) = case decomp x of
+instance (Show (f a)) => Show (DalekUnion '[f] a) where
+  show (DalekUnion x) = show $ extract x
+
+instance {-# OVERLAPPABLE #-} (Show (f a), Show (DalekUnion fs a)) => Show (DalekUnion (f ': fs) a) where
+  show (DalekUnion x) = case decomp x of
     Right fv -> show fv
-    Left uv  -> show (OrphanUnion uv)
+    Left uv  -> show (DalekUnion uv)
 
-instance (Buildable (f a)) => Buildable (OrphanUnion '[f] a) where
-  build (OrphanUnion x) = build $ extract x
+instance (Buildable (f a)) => Buildable (DalekUnion '[f] a) where
+  build (DalekUnion x) = build $ extract x
 
-instance {-# OVERLAPPABLE #-} (Buildable (f a), Buildable (OrphanUnion fs a)) => Buildable (OrphanUnion (f ': fs) a) where
-  build (OrphanUnion x) = case decomp x of
+instance {-# OVERLAPPABLE #-} (Buildable (f a), Buildable (DalekUnion fs a)) => Buildable (DalekUnion (f ': fs) a) where
+  build (DalekUnion x) = case decomp x of
     Right fv -> build fv
-    Left uv  -> build (OrphanUnion uv)
+    Left uv  -> build (DalekUnion uv)
 
-instance (Eq (f a)) => Eq (OrphanUnion '[f] a) where
-  (OrphanUnion x) == (OrphanUnion y) = extract x == extract y
+instance (Eq (f a)) => Eq (DalekUnion '[f] a) where
+  (DalekUnion x) == (DalekUnion y) = extract x == extract y
 
-instance {-# OVERLAPPABLE #-} (Eq (f a), Eq (OrphanUnion fs a)) => Eq (OrphanUnion (f ': fs) a) where
-  (OrphanUnion x) == (OrphanUnion y) = case decomp x of
+instance {-# OVERLAPPABLE #-} (Eq (f a), Eq (DalekUnion fs a)) => Eq (DalekUnion (f ': fs) a) where
+  (DalekUnion x) == (DalekUnion y) = case decomp x of
     Right fx -> case decomp y of
       Right fy -> fx == fy
       Left _   -> False
     Left ux -> case decomp y of
-      Left uy -> OrphanUnion ux == OrphanUnion uy
+      Left uy -> DalekUnion ux == DalekUnion uy
       Right _ -> False
 
-instance (Ord (f a)) => Ord (OrphanUnion '[f] a) where
-  compare (OrphanUnion x) (OrphanUnion y) = compare (extract x) (extract y)
+instance (Ord (f a)) => Ord (DalekUnion '[f] a) where
+  compare (DalekUnion x) (DalekUnion y) = compare (extract x) (extract y)
 
-instance {-# OVERLAPPABLE #-} (Ord (f a), Ord (OrphanUnion fs a)) => Ord (OrphanUnion (f ': fs) a) where
-  compare (OrphanUnion x) (OrphanUnion y) = case decomp x of
+instance {-# OVERLAPPABLE #-} (Ord (f a), Ord (DalekUnion fs a)) => Ord (DalekUnion (f ': fs) a) where
+  compare (DalekUnion x) (DalekUnion y) = case decomp x of
     Right fx -> case decomp y of
       Right fy -> compare fx fy
       Left _   -> GT
     Left ux -> case decomp y of
-      Left uy -> compare (OrphanUnion ux) (OrphanUnion uy)
+      Left uy -> compare (DalekUnion ux) (DalekUnion uy)
       Right _ -> LT

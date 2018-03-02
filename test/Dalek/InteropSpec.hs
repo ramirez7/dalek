@@ -84,3 +84,9 @@ spec = describe "OutputType" $ do
     left `shouldBe` Left False
     right <- xInput eitherTy "< Right = 2.2 | Left : Bool >"
     right `shouldBe` Right 2.2
+  it "function" $ do
+    let funTy = function xNormalizer naturalIn string
+    f <- xInput funTy "\\(n : Natural) -> Natural/show n"
+    f 2 `shouldBe` "+2"
+
+-- TODO: InputType tests (maybe round trip via function?)

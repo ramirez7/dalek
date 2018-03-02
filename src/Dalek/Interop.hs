@@ -5,6 +5,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 
+{-# LANGUAGE ScopedTypeVariables   #-}
+
 -- | Dalek <-> Haskell interop
 --
 -- Interop that requires extensions is in @Dalek.Exts.*.Interop@ modules
@@ -30,36 +32,56 @@ module Dalek.Interop
   , function
   , record
   , union
+  -- * InputType combinators
+  , rawIn
+  , boolIn
+  , integerIn
+  , naturalIn
+  , scientificIn
+  , doubleIn
+  , lazyTextIn
+  , strictTextIn
+  , stringIn
+  , optionalIn
+  , listIn
+  , vectorIn
+  , unitIn
   -- * WIP
   , FromDhall (..)
   , ToDhall (..)
   , InteropOptions (..)) where
 
-import           Control.Exception          (throwIO)
-import           Control.Monad              (guard, unless)
+import           Control.Exception          (Exception, throwIO)
+import           Control.Monad              (guard)
+import           Data.Bifunctor             (first)
+import qualified Data.ByteString.Lazy       as BL
+import qualified Data.Foldable              as F
 import           Data.Functor.Alt           (Alt (..))
 import           Data.Functor.Apply         (Apply (..))
+import           Data.Functor.Contravariant
 import qualified Data.HashMap.Strict.InsOrd as HMI
-import           Data.Scientific            (Scientific, toRealFloat)
+import           Data.Scientific            (Scientific, fromFloatDigits,
+                                             toRealFloat)
 import qualified Data.Text
 import           Data.Text.Buildable        (Buildable (..))
 import           Data.Text.Lazy             (Text)
 import qualified Data.Text.Lazy             as TL
 import qualified Data.Text.Lazy.Builder     as TLB
+import qualified Data.Text.Lazy.Encoding    as TL
 import qualified Data.Vector
-import           System.IO.Error            (userError)
+import           System.IO.Error            (IOError, userError)
 
 import           Dhall                      (Natural)
 import qualified Dhall.Context              as Dh
 import qualified Dhall.Core                 as Dh
-import           Dhall.Parser               (Src, exprA)
+import           Dhall.Parser               (Src (..), exprA)
 import qualified Dhall.TypeCheck            as Dh
 
 import           Dalek.Core
 import           Dalek.Parser
 import           Dhall.ParserUtils
 
-input :: (Eq (Open Src fs), Buildable (Open Src fs))
+input :: (OpenSatisfies Eq Src fs, OpenSatisfies Buildable Src fs)
       => OpenNormalizer Src fs -- ^ Custom normalizer
       -> OpenParser Src fs -- ^ Custom parser
       -> Dh.Typer Src (Open Src fs) -- ^ Custom typer
@@ -70,16 +92,27 @@ input n p t outTy prg = do
   expr <- case parseDhallStr (exprA p) (TL.unpack prg) of
             Success e   -> pure e
             Failure err -> throwIO $ userError $ "Parse Error: " ++ show err
-  ty <- case Dh.typeWithA t Dh.empty expr of
-          Right x  -> pure x
-          Left err -> throwIO $ userError $ "Type Error: " ++ show err
-  let normTy = Dh.normalizeWith n ty
-  unless (normTy == expected outTy) $
-    throwIO $ userError $ "Type mismatch: Expected " ++ buildStr (expected outTy) ++ "but got " ++ buildStr normTy
+  let suffix = BL.toStrict $ TL.encodeUtf8 $ TLB.toLazyText $ build $ (expected outTy)
+  let annot = case expr of
+          Dh.Note (Src begin end bytes) _ ->
+              Dh.Note (Src begin end bytes') (Dh.Annot expr (expected outTy))
+            where
+              bytes' = bytes `mappend` " : " `mappend` suffix
+          _ ->
+              Dh.Annot expr (expected outTy)
+
+  _ <- throws $ first mkTypeException $ Dh.typeWithAN n t Dh.empty annot
   let normExpr = Dh.normalizeWith n expr
   case extract outTy normExpr of
     Just a  -> pure a
     Nothing -> throwIO $ userError "Bad extract"
+
+mkTypeException :: Buildable a => Dh.TypeError Src a -> IOError
+mkTypeException e = userError $ "Type Error: " ++ buildStr e
+
+throws :: Exception e => Either e a -> IO a
+throws (Left  e) = throwIO e
+throws (Right r) = return r
 
 -- | Specification of how to unmarshal from a Dhall value to a Haskell value
 data OutputType fs a = OutputType
@@ -270,7 +303,15 @@ pair aTy bTy = (,) <$> record "_1" aTy <.> record "_2" bTy
 
 -- | Extract a function
 function :: OpenNormalizer Src fs -> InputType fs a -> OutputType fs b -> OutputType fs (a -> b)
-function nrm inTy outTy = undefined
+function nrm inTy outTy = OutputType {
+    extract = \case
+      lam@(Dh.Lam _ _ _) -> Just $ \a ->
+        case extract outTy $ Dh.normalizeWith nrm $ Dh.App lam (embed inTy a) of
+          Just b -> b
+          Nothing -> error "You cannot decode a function if it does not have the correct type"
+      _ -> Nothing
+  , expected = Dh.Pi "_" (declared inTy) (expected outTy)
+}
 
 -- | Specification of how to marshal from a Haskell value to a Dhall value
 data InputType fs a = InputType
@@ -279,6 +320,82 @@ data InputType fs a = InputType
     , declared :: OpenExpr Src fs
     -- ^ Dalek type of the Haskell value
     }
+
+instance Contravariant (InputType fs) where
+  contramap f bTy = InputType {
+      embed = \a -> embed bTy (f a)
+    , declared = declared bTy
+  }
+
+rawIn :: OpenExpr Src fs -- ^ Dhall type of expr
+      -> InputType fs (OpenExpr Src fs)
+rawIn ty = InputType {
+    embed = id
+  , declared = ty
+}
+
+boolIn :: InputType fs Bool
+boolIn = InputType {
+    embed = Dh.BoolLit
+  , declared = Dh.Bool
+}
+
+integerIn :: InputType fs Integer
+integerIn = InputType {
+    embed = Dh.IntegerLit
+  , declared = Dh.Integer
+}
+
+naturalIn :: InputType fs Natural
+naturalIn = InputType {
+    embed = Dh.NaturalLit
+  , declared = Dh.Natural
+}
+
+scientificIn :: InputType fs Scientific
+scientificIn = InputType {
+    embed = Dh.DoubleLit
+  , declared = Dh.Double
+}
+
+doubleIn :: InputType fs Double
+doubleIn = fromFloatDigits >$< scientificIn
+
+lazyTextIn :: InputType fs Text
+lazyTextIn = InputType {
+    embed = Dh.TextLit . Dh.Chunks [] . TLB.fromLazyText
+  , declared = Dh.Text
+}
+
+strictTextIn :: InputType fs Data.Text.Text
+strictTextIn = TL.fromStrict >$< lazyTextIn
+
+stringIn :: InputType fs String
+stringIn = TL.pack >$< lazyTextIn
+
+optionalIn :: InputType fs a -> InputType fs (Maybe a)
+optionalIn aTy = InputType {
+    embed = \may ->
+      Dh.OptionalLit (declared aTy) $
+        fmap (embed aTy) $ Data.Vector.fromList $ F.toList may
+  , declared = Dh.App Dh.Optional (declared aTy)
+}
+
+vectorIn :: InputType fs a -> InputType fs (Data.Vector.Vector a)
+vectorIn aTy = InputType {
+    embed = \as ->
+      Dh.ListLit (Just (declared aTy)) (fmap (embed aTy) as)
+  , declared = Dh.App Dh.List (declared aTy)
+}
+
+unitIn :: InputType fs ()
+unitIn = InputType {
+    embed = const $ Dh.RecordLit HMI.empty
+  , declared = Dh.Record HMI.empty
+}
+
+listIn :: InputType fs a -> InputType fs [a]
+listIn aTy = Data.Vector.fromList >$< vectorIn aTy
 
 -- | WIP: Equivalent of dhall's 'Interpret' type class
 class FromDhall fs a where

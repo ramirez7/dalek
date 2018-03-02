@@ -76,6 +76,7 @@ library
     , vector
     , insert-ordered-containers
     , scientific
+    , bytestring
     -- For its [* -> *] Open Union
     , freer
   hs-source-dirs:      src
