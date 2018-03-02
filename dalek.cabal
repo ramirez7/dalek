@@ -37,6 +37,7 @@ library
     Dalek.Exts.Time.Core
     Dalek.Exts.Time.Parser
     Dalek.Exts.Time.TypeCheck
+    Dalek.Exts.Time.Interop
 
     Dalek.Exts.Map.Core
     Dalek.Exts.Map.Parser
