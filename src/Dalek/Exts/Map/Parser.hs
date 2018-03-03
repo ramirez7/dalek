@@ -9,7 +9,6 @@ import           Data.Text.Buildable (Buildable)
 import           Dalek.Core
 import           Dalek.Exts.Map.Core (DhMap (..))
 import           Dalek.Parser
-import           Dhall.ParserUtils   (reservedF)
 
 parser :: (Buildable (Open s fs), Member DhMap fs) => OpenParser s fs
 parser = sendParser $ asum $ fmap (reservedF @DhMap) $

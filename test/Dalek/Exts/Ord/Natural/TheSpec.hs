@@ -6,7 +6,7 @@
 
 module Dalek.Exts.Ord.Natural.TheSpec (spec) where
 
-import           SpecUtils
+import           Dalek.SpecUtils
 
 import           Data.String.Interpolate          (i)
 

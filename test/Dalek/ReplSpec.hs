@@ -3,16 +3,16 @@
 {-# LANGUAGE QuasiQuotes         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Dhall.ReplSpec (spec) where
+module Dalek.ReplSpec (spec) where
 
-import           SpecUtils
+import           Dalek.SpecUtils
 
 import           Data.String.Interpolate (i)
 
 import qualified Dhall.Core              as Dh
 import           Dhall.TypeCheck         (X)
 
-import           Dhall.Repl
+import           Dalek.Repl
 
 normXLetBind :: LetBind X -> LetBind X
 normXLetBind = normalizeLetBindWith xNormalizer

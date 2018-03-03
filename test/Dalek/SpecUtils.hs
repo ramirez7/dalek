@@ -10,7 +10,7 @@ import qualified Dhall.Core              as Dh
 import qualified Dhall.Parser            as Dh
 import qualified Dhall.TypeCheck         as Dh
 
-import           Dhall.ParserUtils       (Result (..), parseDhallStr)
+import           Dalek.Parser            (Result (..), parseDhallStr)
 
 import           Data.Text.Buildable     (Buildable)
 

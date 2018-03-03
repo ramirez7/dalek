@@ -79,7 +79,6 @@ import qualified Dhall.TypeCheck            as Dh
 
 import           Dalek.Core
 import           Dalek.Parser
-import           Dhall.ParserUtils
 
 input :: (OpenSatisfies Eq Src fs, OpenSatisfies Buildable Src fs)
       => OpenNormalizer Src fs -- ^ Custom normalizer

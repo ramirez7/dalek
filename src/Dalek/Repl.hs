@@ -7,7 +7,7 @@
 {-# LANGUAGE ViewPatterns               #-}
 
 -- | Dhall repl that can work with any dhall extension
-module Dhall.Repl where
+module Dalek.Repl where
 -- Strict StateT has the MonadException instance we need
 import           Control.Applicative        (empty, optional)
 import           Control.Monad.State.Strict (StateT (..), evalStateT, get,
@@ -29,7 +29,7 @@ import qualified Dhall.Core                 as Dh
 import qualified Dhall.Parser               as Dh
 import qualified Dhall.TypeCheck            as Dh
 
-import           Dhall.ParserUtils          (Result (..), label, parseDhallStr,
+import           Dalek.Parser               (Result (..), label, parseDhallStr,
                                              reserved, whitespace)
 
 import qualified System.Console.Haskeline   as HL

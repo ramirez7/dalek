@@ -47,13 +47,13 @@ library
 
     Dalek.Interop
 
+    Dalek.Repl
+
     -- ick
     Dalek.Orphans
-    -- EVENTUALLY REMOVE:
-    Dhall.ParserUtils
 
     -- SEPARATE PACKAGE:
-    Dhall.Repl
+
   other-modules:
 
   -- other-extensions:
@@ -115,5 +115,4 @@ test-suite spec
     Dalek.Exts.Map.TheSpec
     Dalek.InteropSpec
     Dalek.SpecUtils
-
-    Dhall.ReplSpec
+    Dalek.ReplSpec
