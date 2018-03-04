@@ -35,7 +35,6 @@ module Dalek.Parser
 
 import           Control.Applicative     (empty, (<|>))
 
-
 import qualified Dhall.Parser            as Dh
 
 import           Dalek.Core
@@ -46,7 +45,8 @@ import           Dhall.Parser            (Parser (..))
 import           Control.Monad           (guard)
 import           Data.Functor            (void)
 import qualified Data.HashSet
-import           Data.List               (sortOn)
+import           Data.List               (sortBy)
+import           Data.Ord                (Down (..), comparing)
 import qualified Data.Text
 import           Data.Text.Buildable     (Buildable (..))
 import qualified Data.Text.Lazy          as TL
@@ -146,9 +146,9 @@ reservedEnum = reservedOneOf [minBound..maxBound]
 reservedEnumF :: forall f a. (Buildable (f a), Enum (f a), Bounded (f a)) => Dh.Parser (f a)
 reservedEnumF = reservedEnum
 
--- | Tried in alphabetical 'build' order (helps with collisions)
+-- | Tried in reverse alphabetical 'build' order (helps with collisions)
 reservedOneOf :: Buildable a => [a] -> Dh.Parser a
-reservedOneOf = TP.choice . fmap (TP.try . reservedA) . sortOn build
+reservedOneOf = TP.choice . fmap (TP.try . reservedA) . sortBy (comparing (Down . build))
 
 reservedWith :: Data.Text.Text -> a -> Dh.Parser a
 reservedWith name a = do

@@ -26,10 +26,6 @@ parser = sendParser $ TP.choice $
       [ DhLocalTimeDayOfWeek
       , DhUTCTimeToLocalTime
       , DhLocalTimeTimeOfDay
-      -- Ordering matters here: If we put the types before the functions,
-      -- they'll parse first
-      -- TODO: This doesn't compose well with other parsers that use the UTCTime prefix
-      -- For instance, the Ord one.
       , DhUTCTime
       , DhLocalTime
       , DhTimeZone
