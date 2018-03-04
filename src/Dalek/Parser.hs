@@ -137,23 +137,18 @@ whitespaceChunk =
 whitespace :: Dh.Parser ()
 whitespace = TP.skipMany whitespaceChunk
 
--- | Tried in alphabetical order (helps with collisions)
+-- | 'reservedOneOf' for every possible value of @a@
 reservedEnum :: (Buildable a, Enum a, Bounded a) => Dh.Parser a
-reservedEnum =
-    TP.choice
-  $ fmap (uncurry reservedWith)
-  $ sortOn fst
-  $ fmap (\a -> (prepName a, a)) as
-  where
-    prepName = TL.toStrict . TLB.toLazyText . build
+reservedEnum = reservedOneOf [minBound..maxBound]
 
-    as = [minBound..maxBound]
-
+-- | 'reservedEnum' with a different type signature to enable guiding inference
+-- with TypeApplications
 reservedEnumF :: forall f a. (Buildable (f a), Enum (f a), Bounded (f a)) => Dh.Parser (f a)
 reservedEnumF = reservedEnum
 
+-- | Tried in alphabetical 'build' order (helps with collisions)
 reservedOneOf :: Buildable a => [a] -> Dh.Parser a
-reservedOneOf = TP.choice . fmap (TP.try . reservedA)
+reservedOneOf = TP.choice . fmap (TP.try . reservedA) . sortOn build
 
 reservedWith :: Data.Text.Text -> a -> Dh.Parser a
 reservedWith name a = do
