@@ -9,5 +9,14 @@ import           Dalek.Parser
 spec :: Spec
 spec = describe "reserved" $ do
   it "should handle whitespace correctly" $ do
-    shouldBeSuccess $ parseDhallStr (reserved "x") "x x"
-    shouldBeFailure $ parseDhallStr (reserved "x") "x/x"
+    let p = reserved "x"
+    -- The Dhall parsers expected a newline at the end of file
+    let withEofNewline s = s ++ "\n"
+    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x"
+    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x\ny"
+    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x\ty"
+    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x y"
+    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x -- comment"
+
+    shouldBeFailure $ parseDhallStr p $ withEofNewline "x/y"
+    shouldBeFailure $ parseDhallStr p $ withEofNewline "xy"
