@@ -207,5 +207,6 @@ alpha c = ('\x41' <= c && c <= '\x5A') || ('\x61' <= c && c <= '\x7A')
 digit :: Char -> Bool
 digit c = '\x30' <= c && c <= '\x39'
 
+-- | Adds a newline to the end of the String
 parseDhallStr :: Parser a -> String -> Tri.Result a
-parseDhallStr p s = Tri.parseString (unParser $ p) mempty s
+parseDhallStr p s = Tri.parseString (unParser $ p) mempty (s ++ "\n")

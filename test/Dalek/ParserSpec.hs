@@ -11,12 +11,11 @@ spec = describe "reserved" $ do
   it "should handle whitespace correctly" $ do
     let p = reserved "x"
     -- The Dhall parsers expected a newline at the end of file
-    let withEofNewline s = s ++ "\n"
-    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x"
-    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x\ny"
-    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x\ty"
-    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x y"
-    shouldBeSuccess $ parseDhallStr p $ withEofNewline "x -- comment"
+    shouldBeSuccess $ parseDhallStr p "x"
+    shouldBeSuccess $ parseDhallStr p "x\ny"
+    shouldBeSuccess $ parseDhallStr p "x\ty"
+    shouldBeSuccess $ parseDhallStr p "x y"
+    shouldBeSuccess $ parseDhallStr p "x -- comment"
 
-    shouldBeFailure $ parseDhallStr p $ withEofNewline "x/y"
-    shouldBeFailure $ parseDhallStr p $ withEofNewline "xy"
+    shouldBeFailure $ parseDhallStr p "x/y"
+    shouldBeFailure $ parseDhallStr p "xy"
