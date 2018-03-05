@@ -135,7 +135,9 @@ whitespaceChunk =
     predicate c = c == ' ' || c == '\t' || c == '\n'
 
 whitespace :: Dh.Parser ()
-whitespace = TP.skipMany whitespaceChunk
+whitespace = TP.skipSome whitespaceChunk
+
+-- TODO: Why do these parsers seem to treat slashes as whitespace?? Or something
 
 -- | 'reservedOneOf' for every possible value of @a@
 reservedEnum :: (Buildable a, Enum a, Bounded a) => Dh.Parser a

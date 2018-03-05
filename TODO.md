@@ -10,6 +10,10 @@
 * Generic instances for record/union FromDhall/ToDhall. Make it the default
 * `a -> Maybe b` where `Nothing` when it fails to deserialize.
 
+# TypeCheck
+* Infix sugar for Pi
+* Combinators for common things (list, optional) to avoid ctor noise
+
 # Usability
 * Helpers for dealing with constraints. Already exists, but think it through. Maybe a different class instead of composition of a few instances/classes would be better? Regardless, clearly document this
 

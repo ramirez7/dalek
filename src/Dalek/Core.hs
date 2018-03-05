@@ -10,6 +10,7 @@
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE UndecidableInstances       #-}
@@ -172,6 +173,8 @@ reNote :: Dh.Expr X a -> Dh.Expr s a
 reNote = first absurd
 --------------------------------------------------------------------------------
 -- instances
+
+type IsOpen s fs expr = expr ~ OpenExpr s fs
 
 type OpenSatisfies (c :: * -> Constraint) s fs = c (DalekUnion fs (OpenExpr s fs))
 

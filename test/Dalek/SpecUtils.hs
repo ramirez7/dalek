@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase       #-}
 {-# LANGUAGE RankNTypes       #-}
 
 module Dalek.SpecUtils (module X, module Dalek.SpecUtils) where
@@ -58,3 +59,13 @@ checked :: (Buildable a, Eq a) => Dh.Parser a -> Dh.Typer Dh.Src a -> String -> 
 checked p t s = do
   expr <- parsed p s
   Dh.typeWithA t Dh.empty expr `asRight` (pure . const expr)
+
+shouldBeSuccess :: Show a => Result a -> IO ()
+shouldBeSuccess = \case
+  Success _ -> pure ()
+  x@(Failure _) -> expectationFailure $ "Not Result.Success: " ++ show x
+
+shouldBeFailure :: Show a => Result a -> IO ()
+shouldBeFailure = \case
+  Failure _ -> pure ()
+  x@(Success _) -> expectationFailure $ "Not Result.Failure: " ++ show x

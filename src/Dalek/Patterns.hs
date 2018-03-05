@@ -35,14 +35,18 @@ Apps [] = NEVER MATCHES
 pattern Apps :: [Dh.Expr t a] -> Dh.Expr t a
 pattern Apps xs <- (gatherApps -> Just xs)
 -- TODO: Make bidirectional?
+-- TODO: Once it's bidirectional, don't use a list. Do `Apps x y [z, w, ...]` for totality
 
 -- | Pattern meant to help with matching on 'Embed'ded 'OpenUnion' terms.
 pattern E :: forall f s fs. Member f fs => f (Dh.Expr s (Open s fs)) -> Dh.Expr s (Open s fs)
 pattern E a <- Dh.Embed (prj . unRec -> Just a)
+-- TODO: Make bidirectional? Would replace usage of sendEmbed I believe?
 
 -- | Helpful for matching on a kind @*@ term that has been lifted to @* -> *@ using 'C'
 pattern EC :: forall a s fs. Member (C a) fs => a -> Dh.Expr s (Open s fs)
 pattern EC a <- Dh.Embed (prj . unRec -> Just (C a))
+
+-- TODO: Pattern for TextLit + Chunks []
 
 gatherApps :: Dh.Expr t a -> Maybe [Dh.Expr t a]
 gatherApps = \case
