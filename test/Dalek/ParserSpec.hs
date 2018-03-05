@@ -16,6 +16,5 @@ spec = describe "reserved" $ do
     shouldBeSuccess $ parseDhallStr p "x\ty"
     shouldBeSuccess $ parseDhallStr p "x y"
     shouldBeSuccess $ parseDhallStr p "x -- comment"
-
-    shouldBeFailure $ parseDhallStr p "x/y"
-    shouldBeFailure $ parseDhallStr p "xy"
+    shouldBeSuccess $ parseDhallStr p "x/y"
+    shouldBeSuccess $ parseDhallStr p "xy"

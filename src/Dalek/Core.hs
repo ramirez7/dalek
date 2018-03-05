@@ -28,6 +28,7 @@ module Dalek.Core
   -- * Utilities
   , C (..)
   , xNormalizer
+  , IsOpen
   , OpenSatisfies
   -- * Re-exports
   , Member

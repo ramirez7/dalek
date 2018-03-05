@@ -28,3 +28,6 @@
 # Dhall.Repl
 * Multiline editing
 * Pretty printing (settable? A command?)
+
+# Parsing
+* Allow user-provided reserved identifiers. Right now, embedded parsing doesn't allow for identifiers such as `UTCTime/myFunc` because it parses `UTCTime` using the embedded parser before parsing identifiers. Maybe make `OpenParser` a tuple of `(Parser a, HashSet Text)` and have its Alternative instance combine identifiers? `exprA` in `dhall-haskell` will have to be patched to allow for providing reserved identifiers.
