@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -9,6 +10,9 @@
 module Dalek.TypeCheck where
 
 import           Data.Functor.Contravariant
+
+import           Dhall                      (Text)
+import qualified Dhall.Core                 as Dh
 import qualified Dhall.TypeCheck            as Dh
 
 import           Dalek.Core
@@ -34,3 +38,15 @@ sendTyper = (. extract)
 
 xTyper :: OpenTyper s (C X) fs
 xTyper = absurd . unC
+
+-- TODO: Shake out fixity/order of operations of PiBinding + the arrows
+data PiBinding s a = !Text :. !(Dh.Expr s a)
+
+(~>) :: PiBinding s a -> Dh.Expr s a -> Dh.Expr s a
+(name :. input) ~> output = Dh.Pi name input output
+
+(.~>) :: Dh.Expr s a -> Dh.Expr s a -> Dh.Expr s a
+input .~> output = Dh.Pi "_" input output
+
+infixr .~>
+infixr ~>
