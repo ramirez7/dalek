@@ -16,7 +16,7 @@
 
 # Usability
 * Helpers for dealing with constraints. Already exists, but think it through. Maybe a different class instead of composition of a few instances/classes would be better? Regardless, clearly document this
-* Re-export Dhall types (Expr, Src, etc)
+* Re-export Dhall types (Expr, Src, etc) (Buildable, other stuff)
 
 # Tutorials
 * Separate Interop tutorial

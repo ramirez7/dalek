@@ -10,7 +10,11 @@ module Dalek.Patterns
   ( pattern Apps
   , pattern E
   , pattern EC
+  , gatherApps
+  , ungatherApps
   ) where
+
+import Data.List (foldl')
 
 import qualified Dhall.Core as Dh
 
@@ -48,10 +52,16 @@ pattern EC a <- Dh.Embed (prj . unRec -> Just (C a))
 
 -- TODO: Pattern for TextLit + Chunks []
 
+-- TODO: Handle Notes here somehow?
 gatherApps :: Dh.Expr t a -> Maybe [Dh.Expr t a]
 gatherApps = \case
   Dh.App (Dh.App x y) z -> case gatherApps x of
     Just xs -> Just $ xs ++ [y,z]
     Nothing -> Just $ [x,y,z]
   Dh.App x y -> Just [x, y]
+  _ -> Nothing
+
+ungatherApps :: [Dh.Expr t a] -> Maybe (Dh.Expr t a)
+ungatherApps = \case
+  x : y : xs -> Just $ foldl' (\acc expr -> Dh.App acc expr) (Dh.App x y) xs
   _ -> Nothing

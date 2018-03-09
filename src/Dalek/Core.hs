@@ -103,7 +103,7 @@ unNoteOpen :: OpenExpr s fs -> OpenExpr X fs
 unNoteOpen = undefined
 
 -- | Remove all 'Note's from the AST
-unNote :: Dh.Expr s a -> Dh.Expr X a
+unNote :: Dh.Expr s a -> Dh.Expr t a
 unNote = \case
   Dh.Note _ e -> unNote e
   Dh.Const x -> Dh.Const x

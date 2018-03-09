@@ -23,6 +23,7 @@ import           Data.Open.Union
 -- OpenTyper s (Union fs) fs ~ Typer
 type OpenTyper s f fs = f (OpenExpr s fs) -> OpenExpr s fs
 
+type OpenTypeError s fs = Dh.TypeError s (Open s fs)
 -- TODO: Open type should be a Typer alias. PartialTyper or smth should be this one
 
 typerUnion :: OpenTyper s f ftarget -> OpenTyper s (Union fs) ftarget -> OpenTyper s (Union (f ': fs)) ftarget

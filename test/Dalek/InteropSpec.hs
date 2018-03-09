@@ -1,6 +1,12 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 {-
 TODO:
@@ -11,82 +17,151 @@ module Dalek.InteropSpec where
 
 import           Dalek.SpecUtils
 
-import           Data.Functor.Alt   ((<!>))
-import           Data.Functor.Apply ((<.>))
-import           Data.Text.Lazy     (Text)
-import qualified Data.Vector as V
+import           Data.Functor.Alt    ((<!>))
+import           Data.Functor.Apply  ((<.>))
+import           Data.Text.Buildable
+import           Data.Text.Lazy      (Text)
+import qualified Data.Vector         as V
+
+import qualified Dhall.Core          as Dh
+import           Dhall.Parser        (Src)
+import qualified Dhall.TypeCheck     as Dh
 
 import           Dalek.Core
 import           Dalek.Interop
 import           Dalek.Parser
+import           Dalek.Patterns
 import           Dalek.TypeCheck
 
-xInput :: OutputType '[C X] a -> Text -> IO a
-xInput = input xNormalizer xParser (toTyper $ sendTyper xTyper)
+type SpecExts = '[DhExistentialList]
+specInput :: OutputType SpecExts a -> Text -> IO a
+specInput = input specNormalizer specParser specTyper
+
+specNormalizer :: OpenNormalizer s SpecExts
+specNormalizer = exListNormalizer
+
+specParser :: OpenParser s SpecExts
+specParser = exListParser
+
+specTyper :: Dh.Typer s (Open s SpecExts)
+specTyper = toTyper $ sendTyper exListTyper
 
 spec :: Spec
 spec = describe "OutputType" $ do
   it "bool" $ do
-    t <- xInput bool "True"
+    t <- specInput bool "True"
     t `shouldBe` True
 
-    f <- xInput bool "False"
+    f <- specInput bool "False"
     f `shouldBe` False
   it "integer" $ do
-    x <- xInput integer "-2"
+    x <- specInput integer "-2"
     x `shouldBe` -2
   it "scientific" $ do
-    x <- xInput scientific "2.2"
+    x <- specInput scientific "2.2"
     x `shouldBe` 2.2
   it "double" $ do
-    x <- xInput double "2.2"
+    x <- specInput double "2.2"
     x `shouldBe` 2.2
   it "natural" $ do
-    x <- xInput natural "+5"
+    x <- specInput natural "+5"
     x `shouldBe` 5
   it "lazyText" $ do
-    t <- xInput lazyText "\"hello world\""
+    t <- specInput lazyText "\"hello world\""
     t `shouldBe` "hello world"
   it "strictText" $ do
-    t <- xInput strictText "\"hello world\""
+    t <- specInput strictText "\"hello world\""
     t `shouldBe` "hello world"
   it "optional" $ do
-    just <- xInput (optional natural) "[+2] : Optional Natural"
+    just <- specInput (optional natural) "[+2] : Optional Natural"
     just `shouldBe` Just 2
-    nothing <- xInput (optional natural) "[] : Optional Natural"
+    nothing <- specInput (optional natural) "[] : Optional Natural"
     nothing `shouldBe` Nothing
   it "list" $ do
-    xs <- xInput (list natural) "[+2, +3, +4]"
+    xs <- specInput (list natural) "[+2, +3, +4]"
     xs `shouldBe` [2,3,4]
-    nil <- xInput (list natural) "[] : List Natural"
+    nil <- specInput (list natural) "[] : List Natural"
     nil `shouldBe` []
   it "vector" $ do
-    xs <- xInput (vector natural) "[+2, +3, +4]"
+    xs <- specInput (vector natural) "[+2, +3, +4]"
     xs `shouldBe` V.fromList [2,3,4]
-    nil <- xInput (vector natural) "[] : List Natural"
+    nil <- specInput (vector natural) "[] : List Natural"
     nil `shouldBe` V.fromList []
   it "string" $ do
-    s <- xInput string "\"hello world\""
+    s <- specInput string "\"hello world\""
     s `shouldBe` "hello world"
   it "unit" $ do
-    u <- xInput unit "{=}"
+    u <- specInput unit "{=}"
     u `shouldBe` ()
   it "pair" $ do
-    p <- xInput (pair bool double) "{ _1 = True, _2 = 2.2 }"
+    p <- specInput (pair bool double) "{ _1 = True, _2 = 2.2 }"
     p `shouldBe` (True, 2.2)
   it "record" $ do
     let tupleTy = (,,) <$> record "_1" bool <.> record "_2" double <.> record "_3" integer
-    tuple <- xInput tupleTy "{ _1 = True, _2 = 2.2, _3 = 4 }"
+    tuple <- specInput tupleTy "{ _1 = True, _2 = 2.2, _3 = 4 }"
     tuple `shouldBe` (True, 2.2, 4)
   it "union" $ do
     let eitherTy = union "Left" Left bool <!> union "Right" Right double
-    left <- xInput eitherTy "< Left = False | Right : Double >"
+    left <- specInput eitherTy "< Left = False | Right : Double >"
     left `shouldBe` Left False
-    right <- xInput eitherTy "< Right = 2.2 | Left : Bool >"
+    right <- specInput eitherTy "< Right = 2.2 | Left : Bool >"
     right `shouldBe` Right 2.2
   it "function" $ do
-    let funTy = function xNormalizer naturalIn string
-    f <- xInput funTy "\\(n : Natural) -> Natural/show n"
+    let funTy = function specNormalizer naturalIn string
+    f <- specInput funTy "\\(n : Natural) -> Natural/show n"
     f 2 `shouldBe` "+2"
+  it "quantified" $ do
+    let elTy = forAll (Dh.Const Dh.Type) $ \ty ->
+          ConcreteOutputType {
+              concreteExpected = Dh.App (sendEmbed DhExistentialListType) ty
+            , concreteExtract = \case
+                Apps [E DhExistentialList, Dh.ListLit _ xs] ->
+                  Just $ ExistentialList ty (V.toList xs)
+                _ -> Nothing
+          }
+    el <- specInput elTy "Existential/List Natural [+1]"
+    el `shouldBe` ExistentialList Dh.Natural [Dh.NaturalLit 1]
+
+data ExistentialList fs = ExistentialList {
+    exListTy  :: OpenExpr Src fs
+  , exListVal :: [OpenExpr Src fs]
+}
+
+deriving instance OpenSatisfies Show Src fs => Show (ExistentialList fs)
+deriving instance OpenSatisfies Eq Src fs => Eq (ExistentialList fs)
+
+elTy' :: Member DhExistentialList fs => OutputType fs (ExistentialList fs)
+elTy' = forAll (Dh.Const Dh.Type) $ \ty ->
+      ConcreteOutputType {
+          concreteExpected = Dh.App (sendEmbed DhExistentialListType) ty
+        , concreteExtract = \case
+            Apps [E DhExistentialList, Dh.ListLit _ xs] ->
+              Just $ ExistentialList ty (V.toList xs)
+            _ -> Nothing
+      }
+
+data DhExistentialList expr =
+    DhExistentialList
+  | DhExistentialListType
+  deriving (Eq, Show, Ord, Enum, Bounded)
+
+instance Buildable (DhExistentialList expr) where
+  build = \case
+    DhExistentialList -> "Existential/List"
+    DhExistentialListType -> "Existential/List/Type"
+
+exListNormalizer :: Member DhExistentialList fs => OpenNormalizer s fs
+exListNormalizer = const Nothing
+
+exListParser :: Member DhExistentialList fs => OpenParser s fs
+exListParser = sendParser $ reservedEnumF @DhExistentialList
+
+exListTyper :: Member DhExistentialList fs => OpenTyper s DhExistentialList fs
+exListTyper = \case
+  DhExistentialList ->
+        ("ty" :. Dh.Const Dh.Type)
+     ~> (Dh.App Dh.List "ty")
+    .~> (Dh.App (sendEmbed DhExistentialListType) "ty")
+  DhExistentialListType -> Dh.Const Dh.Type .~> Dh.Const Dh.Type
 
 -- TODO: InputType tests (maybe round trip via function?)

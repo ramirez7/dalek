@@ -12,9 +12,9 @@ import           Dalek.Interop
 import           Dalek.Patterns
 
 utcTime :: Member DhTime fs => OutputType fs UTCTime
-utcTime = OutputType {
-    extract = \case
+utcTime = ConcreteOutputType {
+    concreteExtract = \case
       E (DhUTCTimeLit t) -> Just t
       _ -> Nothing
-  , expected = sendEmbed DhUTCTime
+  , concreteExpected = sendEmbed DhUTCTime
 }
