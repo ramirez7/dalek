@@ -18,6 +18,7 @@ module Dalek.Interop
   ( input
   , OutputType (..)
   , InputType (..)
+  , extract
   -- * OutputType combinators
   , raw
   , forAll
