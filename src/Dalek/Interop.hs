@@ -149,6 +149,7 @@ annotWith :: forall fs a
           -> Maybe (OpenExpr Src fs)
 annotWith aTy expr = case (unNote expr :: OpenExpr Src fs) of
   Dh.Note src e -> Dh.Note src <$> annotWith aTy e
+  Dh.Let t a b e -> Dh.Let t a b <$> annotWith aTy e
   Apps (f : xs) -> do
     (exprTy, annotArgs) <- go xs aTy
     argAnnotExpr <- ungatherApps (f : annotArgs)

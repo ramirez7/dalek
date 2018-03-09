@@ -111,17 +111,11 @@ spec = describe "OutputType" $ do
     f <- specInput funTy "\\(n : Natural) -> Natural/show n"
     f 2 `shouldBe` "+2"
   it "quantified" $ do
-    let elTy = forAll (Dh.Const Dh.Type) $ \ty ->
-          ConcreteOutputType {
-              concreteExpected = Dh.App (sendEmbed DhExistentialListType) ty
-            , concreteExtract = \case
-                Apps [E DhExistentialList, Dh.ListLit _ xs] ->
-                  Just $ ExistentialList ty (V.toList xs)
-                _ -> Nothing
-          }
     el <- specInput elTy "Existential/List Natural [+1]"
     el `shouldBe` ExistentialList Dh.Natural [Dh.NaturalLit 1]
-
+  it "quantified Let" $ do
+    el <- specInput elTy "let TheType = Natural in Existential/List TheType [+1]"
+    el `shouldBe` ExistentialList Dh.Natural [Dh.NaturalLit 1]
 data ExistentialList fs = ExistentialList {
     exListTy  :: OpenExpr Src fs
   , exListVal :: [OpenExpr Src fs]
@@ -130,8 +124,8 @@ data ExistentialList fs = ExistentialList {
 deriving instance OpenSatisfies Show Src fs => Show (ExistentialList fs)
 deriving instance OpenSatisfies Eq Src fs => Eq (ExistentialList fs)
 
-elTy' :: Member DhExistentialList fs => OutputType fs (ExistentialList fs)
-elTy' = forAll (Dh.Const Dh.Type) $ \ty ->
+elTy :: Member DhExistentialList fs => OutputType fs (ExistentialList fs)
+elTy = forAll (Dh.Const Dh.Type) $ \ty ->
       ConcreteOutputType {
           concreteExpected = Dh.App (sendEmbed DhExistentialListType) ty
         , concreteExtract = \case
