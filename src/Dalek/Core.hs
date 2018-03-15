@@ -20,6 +20,7 @@ module Dalek.Core
     OpenNormalizer
   , Open
   , OpenExpr
+  , openNormalizeWith
   , sendEmbed
   , (.<|>)
   -- * Note
@@ -30,6 +31,7 @@ module Dalek.Core
   , xNormalizer
   , IsOpen
   , OpenSatisfies
+  , isClosedExpression
   -- * Re-exports
   , Member
   , Members
@@ -43,6 +45,7 @@ module Dalek.Core
   ) where
 
 import           Control.Applicative
+import           Control.Monad             (guard)
 import           Control.Monad.Trans.Maybe (MaybeT (..))
 import           Data.Bifunctor            (first)
 import           Data.Kind                 (Constraint)
@@ -88,6 +91,14 @@ nl .<|> nr = runMaybeT (MaybeT nl <|> MaybeT nr)
 -- | Embed a value into an 'OpenExpr'
 sendEmbed :: forall fs s f. Member f fs => f (OpenExpr s fs) -> OpenExpr s fs
 sendEmbed a = Dh.Embed $ Rec $ inj a
+
+-- Makes sure no non-closed expressions are passed to the embedded applications
+openNormalizeWith :: OpenNormalizer s fs -> OpenExpr s fs -> OpenExpr s fs
+openNormalizeWith n = Dh.normalizeWith safeN
+  where
+    safeN e = do
+      guard (isClosedExpression e)
+      n e
 
 -- | The same as 'Data.Functor.Const' but with different instances
 newtype C c a = C { unC :: c } deriving (Functor, Eq, Ord, Buildable, Show)
@@ -172,6 +183,71 @@ unNote = \case
 -- @
 reNote :: Dh.Expr X a -> Dh.Expr s a
 reNote = first absurd
+--------------------------------------------------------------------------------
+-- Closed expression validation
+
+-- TODO: Test this
+isClosedExpression :: Dh.Expr s a -> Bool
+isClosedExpression = \case
+  Dh.Var _ -> False
+  Dh.Note _ e -> isClosedExpression e
+  Dh.Const _ -> True
+  Dh.Lam _ e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.Pi _ e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.App e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.Let _ me1 e2 e3 -> all isClosedExpression me1 && isClosedExpression e2 && isClosedExpression e3
+  Dh.Annot e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.Bool -> True
+  Dh.BoolLit _ -> True
+  Dh.BoolAnd e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.BoolOr e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.BoolEQ e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.BoolNE e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.BoolIf e1 e2 e3 -> isClosedExpression e1 && isClosedExpression e2 && isClosedExpression e3
+  Dh.Natural -> True
+  Dh.NaturalLit _ -> True
+  Dh.NaturalFold -> True
+  Dh.NaturalBuild -> True
+  Dh.NaturalIsZero -> True
+  Dh.NaturalEven -> True
+  Dh.NaturalOdd -> True
+  Dh.NaturalToInteger -> True
+  Dh.NaturalShow -> True
+  Dh.NaturalPlus e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.NaturalTimes e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.Integer -> True
+  Dh.IntegerLit _ -> True
+  Dh.IntegerShow -> True
+  Dh.Double -> True
+  Dh.DoubleLit _ -> True
+  Dh.DoubleShow -> True
+  Dh.Text -> True
+  Dh.TextLit (Dh.Chunks chunks _) -> all (isClosedExpression . snd) chunks
+  Dh.TextAppend e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.List -> True
+  Dh.ListLit me1 ve2 -> all isClosedExpression me1 && all isClosedExpression ve2
+  Dh.ListAppend e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.ListBuild -> True
+  Dh.ListFold -> True
+  Dh.ListLength -> True
+  Dh.ListHead -> True
+  Dh.ListLast -> True
+  Dh.ListIndexed -> True
+  Dh.ListReverse -> True
+  Dh.Optional -> True
+  Dh.OptionalLit e1 ve2  -> isClosedExpression e1 && all isClosedExpression ve2
+  Dh.OptionalFold -> True
+  Dh.OptionalBuild -> True
+  Dh.Record mpe -> all isClosedExpression mpe
+  Dh.RecordLit mpe -> all isClosedExpression mpe
+  Dh.Union mpe -> all isClosedExpression mpe
+  Dh.UnionLit _ e1 mpe2 -> isClosedExpression e1 && all isClosedExpression mpe2
+  Dh.Combine e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.Prefer e1 e2 -> isClosedExpression e1 && isClosedExpression e2
+  Dh.Merge e1 e2 me3 -> isClosedExpression e1 && isClosedExpression e2 && all isClosedExpression me3
+  Dh.Constructors e -> isClosedExpression e
+  Dh.Field e _ -> isClosedExpression e
+  Dh.Embed _ -> True
 --------------------------------------------------------------------------------
 -- instances
 

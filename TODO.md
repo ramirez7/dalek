@@ -9,9 +9,9 @@
 * InputType record/union combinators (maybe (r ->) monad?)
 * Generic instances for record/union FromDhall/ToDhall. Make it the default
 * `a -> Maybe b` where `Nothing` when it fails to deserialize.
+* Detailed error messages
 
 # TypeCheck
-* Infix sugar for Pi
 * Combinators for common things (list, optional) to avoid ctor noise
 
 # Usability
@@ -29,6 +29,11 @@
 # Dhall.Repl
 * Multiline editing
 * Pretty printing (settable? A command?)
+* Detailed error messages
 
 # Parsing
 * Allow user-provided reserved identifiers. Right now, embedded parsing doesn't allow for identifiers such as `UTCTime/myFunc` because it parses `UTCTime` using the embedded parser before parsing identifiers. Maybe make `OpenParser` a tuple of `(Parser a, HashSet Text)` and have its Alternative instance combine identifiers? `exprA` in `dhall-haskell` will have to be patched to allow for providing reserved identifiers.
+
+# Safety
+* Have a easy story for ensuring that our `Embed` terms are closed
+  * `openNormalizeWith` + `isClosedExpression` is what I have for now
