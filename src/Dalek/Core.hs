@@ -20,9 +20,9 @@ module Dalek.Core
     OpenNormalizer
   , Open
   , OpenExpr
-  , openNormalizeWith
   , sendEmbed
   , (.<|>)
+  , ignoringUnclosed
   -- * Note
   , unNote
   , reNote
@@ -92,13 +92,15 @@ nl .<|> nr = runMaybeT (MaybeT nl <|> MaybeT nr)
 sendEmbed :: forall fs s f. Member f fs => f (OpenExpr s fs) -> OpenExpr s fs
 sendEmbed a = Dh.Embed $ Rec $ inj a
 
--- Makes sure no non-closed expressions are passed to the embedded applications
-openNormalizeWith :: OpenNormalizer s fs -> OpenExpr s fs -> OpenExpr s fs
-openNormalizeWith n = Dh.normalizeWith safeN
-  where
-    safeN e = do
-      guard (isClosedExpression e)
-      n e
+-- | Filter terms passed to a 'Normalizer' so that no unclosed terms (i.e.
+-- containing unresolved variables within) are normalized using it. This helps
+-- ensure that 'Embed' terms do not capture unclosed Dhall expressions. If this
+-- happens, those variables will never be resolved as 'dhall' does not
+-- perform substitution on 'Embed' terms.
+ignoringUnclosed :: Dh.Normalizer s a -> Dh.Normalizer s a
+ignoringUnclosed n e = do
+  guard (isClosedExpression e)
+  n e
 
 -- | The same as 'Data.Functor.Const' but with different instances
 newtype C c a = C { unC :: c } deriving (Functor, Eq, Ord, Buildable, Show)

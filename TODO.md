@@ -37,3 +37,5 @@
 # Safety
 * Have a easy story for ensuring that our `Embed` terms are closed
   * `openNormalizeWith` + `isClosedExpression` is what I have for now
+  * Maybe `dhall-haskell` should enforce this invariant
+  * Maybe `dhall-haskell` should expose a way to perform substitution on `Embed` terms
