@@ -5,10 +5,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
-
 {-# LANGUAGE ScopedTypeVariables   #-}
-
-{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 
 -- | Dalek <-> Haskell interop
@@ -18,6 +17,7 @@ module Dalek.Interop
   ( input
   , OutputType (..)
   , InputType (..)
+  , InteropError (..)
   , extract
   -- * OutputType combinators
   , raw
@@ -36,6 +36,7 @@ module Dalek.Interop
   , unit
   , pair
   , function
+  , functionEither
   , record
   , union
   -- * InputType combinators
@@ -57,7 +58,7 @@ module Dalek.Interop
   , ToDhall (..)
   , InteropOptions (..)) where
 
-import           Control.Exception          (Exception, throwIO)
+import           Control.Exception          (Exception, throw, throwIO)
 import           Control.Monad              (guard)
 import           Data.Bifunctor             (first)
 import qualified Data.ByteString.Lazy       as BL
@@ -74,6 +75,7 @@ import           Data.Text.Lazy             (Text)
 import qualified Data.Text.Lazy             as TL
 import qualified Data.Text.Lazy.Builder     as TLB
 import qualified Data.Text.Lazy.Encoding    as TL
+import           Data.Typeable              (Typeable)
 import qualified Data.Vector
 import           System.IO.Error            (IOError, userError)
 
@@ -362,14 +364,47 @@ unit = ConcreteOutputType {
 pair :: OutputType fs a -> OutputType fs b -> OutputType fs (a, b)
 pair aTy bTy = (,) <$> record "_1" aTy <.> record "_2" bTy
 
--- | Extract a function
-function :: OpenNormalizer Src fs -> InputType fs a -> OutputType fs b -> OutputType fs (a -> b)
-function nrm inTy outTy = ConcreteOutputType {
+-- | Extract a function. Assumes that if the Dhall function type checks, it will
+-- always be able to normalize when the marshalled 'InputType' value is applied
+-- to it and then the result of that will always be able to be extracted with
+-- the given 'OutputType'. If these assumptions are not met, the extracted function
+-- will crash throwing an 'InteropError' at the time it is applied in Haskell.
+function :: (Typeable fs, OpenSatisfies Show Src fs)
+         => OpenNormalizer Src fs
+         -> InputType fs a
+         -> OutputType fs b
+         -> OutputType fs (a -> b)
+function nrm inTy outTy = fmap (fmap (either throw id)) $ functionEither nrm inTy outTy
+
+data InteropError fs =
+  LambdaError {
+      lamLam :: OpenExpr Src fs
+    , lamIn  :: OpenExpr Src fs
+    , lamOut :: OpenExpr Src fs
+  }
+
+deriving instance (OpenSatisfies Show Src fs) => Show (InteropError fs)
+instance (Typeable fs, OpenSatisfies Show Src fs) => Exception (InteropError fs)
+
+-- | Like 'function', but if the Dhall function fails to run or fails to produce
+-- an unmarshallable value, the function will return 'Left'. Functions extracted
+-- with this 'OutputType' will never crash in Haskell.
+functionEither :: OpenNormalizer Src fs
+               -> InputType fs a
+               -> OutputType fs b
+               -> OutputType fs (a -> Either (InteropError fs) b)
+functionEither nrm inTy outTy = ConcreteOutputType {
     concreteExtract = \case
       lam@(Dh.Lam _ _ _) -> Just $ \a ->
-        case concreteExtract outTy $ Dh.normalizeWith nrm $ Dh.App lam (embed inTy a) of
-          Just b -> b
-          Nothing -> error "You cannot decode a function if it does not have the correct type"
+        let aExpr = embed inTy a
+            bExpr = Dh.normalizeWith nrm (Dh.App lam aExpr)
+        in case concreteExtract outTy bExpr of
+          Just b -> Right b
+          Nothing -> Left $ LambdaError {
+                lamLam = lam
+              , lamIn = aExpr
+              , lamOut = bExpr
+            }
       _ -> Nothing
   , concreteExpected = Dh.Pi "_" (declared inTy) (concreteExpected outTy)
 }

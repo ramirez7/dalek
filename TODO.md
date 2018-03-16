@@ -13,6 +13,7 @@
 
 # TypeCheck
 * Combinators for common things (list, optional) to avoid ctor noise
+  * Maybe just good infix sugar for `App` would solve this need
 
 # Usability
 * Helpers for dealing with constraints. Already exists, but think it through. Maybe a different class instead of composition of a few instances/classes would be better? Regardless, clearly document this
@@ -39,3 +40,8 @@
   * `openNormalizeWith` + `isClosedExpression` is what I have for now
   * Maybe `dhall-haskell` should enforce this invariant
   * Maybe `dhall-haskell` should expose a way to perform substitution on `Embed` terms
+
+# Tests
+* `functionEither` happy path
+* `function` and `functionEither` failure
+* `ignoringUnclosed`
