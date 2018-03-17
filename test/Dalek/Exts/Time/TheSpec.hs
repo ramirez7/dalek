@@ -27,15 +27,15 @@ spec :: Spec
 spec = describe "end-to-end" $ do
   describe "UTCTime" $ do
     it "should parse literals" $ do
-      expr <- checked parser typer [i|
+      expr <- checkedAndNormalized parser typer normalizer [i|
               -- Note the timezone
               $(1776-07-04T00:00:00Z)
             |]
-      normalize expr `shouldBe` sendEmbed (DhUTCTimeLit $ UTCTime (fromGregorian 1776 7 4) 0)
-      explicitOffset <- checked parser typer [i|
+      expr `shouldBe` sendEmbed (DhUTCTimeLit $ UTCTime (fromGregorian 1776 7 4) 0)
+      explicitOffset <- checkedAndNormalized parser typer normalizer [i|
               $(1776-07-04T00:00:00+0000)
             |]
-      normalize explicitOffset `shouldBe` sendEmbed (DhUTCTimeLit $ UTCTime (fromGregorian 1776 7 4) 0)
+      explicitOffset `shouldBe` sendEmbed (DhUTCTimeLit $ UTCTime (fromGregorian 1776 7 4) 0)
     it "should typecheck literals" $ do
       good <- parsed parser [i|
               $(1776-07-04T00:00:00Z) : UTCTime
@@ -48,11 +48,11 @@ spec = describe "end-to-end" $ do
       shouldBeLeft $ typeOf bad
   describe "LocalTime" $ do
     it "should parse literals" $ do
-      expr <- checked parser typer [i|
+      expr <- checkedAndNormalized parser typer normalizer [i|
               -- Note the *lack* of timezone
               $(1776-07-04T00:00:00)
             |]
-      normalize expr `shouldBe` sendEmbed (DhLocalTimeLit $ LocalTime (fromGregorian 1776 7 4) midnight)
+      expr `shouldBe` sendEmbed (DhLocalTimeLit $ LocalTime (fromGregorian 1776 7 4) midnight)
     it "should typecheck literals" $ do
       good <- parsed parser [i|
               $(1776-07-04T00:00:00) : LocalTime
@@ -65,11 +65,11 @@ spec = describe "end-to-end" $ do
       shouldBeLeft $ typeOf bad
   describe "TimeZone" $ do
     it "should parse literals" $ do
-      expr <- checked parser typer [i|
+      expr <- checkedAndNormalized parser typer normalizer [i|
               -- Note the *lack* of timezone
               $(+0300)
             |]
-      normalize expr `shouldBe` sendEmbed (DhTimeZoneLit $ hoursToTimeZone 3)
+      expr `shouldBe` sendEmbed (DhTimeZoneLit $ hoursToTimeZone 3)
     it "should typecheck literals" $ do
       good <- parsed parser [i|
               $(-0700) : TimeZone
@@ -82,10 +82,10 @@ spec = describe "end-to-end" $ do
       shouldBeLeft $ typeOf bad
   describe "LocalTime/dayOfWeek" $ do
     it "should correctly calculate" $ do
-      expr <- checked parser typer [i|
+      expr <- checkedAndNormalized parser typer normalizer [i|
         LocalTime/dayOfWeek $(2017-12-04T00:00:00)
       |]
-      normalize expr `shouldBe` Dh.IntegerLit 1
+      expr `shouldBe` Dh.IntegerLit 1
     it "should handle poorly-typed expressions" $ do
       expr <- parsed parser [i|
         LocalTime/dayOfWeek $(2017-12-04T00:00:00Z)
@@ -93,10 +93,10 @@ spec = describe "end-to-end" $ do
       shouldBeLeft $ typeOf expr
   describe "UTCTime/toLocalTime" $ do
     it "should correctly calculate" $ do
-      expr <- checked parser typer [i|
+      expr <- checkedAndNormalized parser typer normalizer [i|
         UTCTime/toLocalTime $(+0000) $(2017-12-04T00:00:00Z)
       |]
-      normalize expr `shouldBe` sendEmbed (DhLocalTimeLit (LocalTime (fromGregorian 2017 12 4) midnight))
+      expr `shouldBe` sendEmbed (DhLocalTimeLit (LocalTime (fromGregorian 2017 12 4) midnight))
     it "should handle poorly-typed expressions" $ do
       expr <- parsed parser [i|
         UTCTime/toLocalTime +0 $(2017-12-04T00:00:00Z)
@@ -104,31 +104,28 @@ spec = describe "end-to-end" $ do
       shouldBeLeft $ typeOf expr
   describe "LocalTime/timeOfDay" $ do
     it "should correctly calculate" $ do
-      expr <- checked parser typer [i|
+      expr <- checkedAndNormalized parser typer normalizer [i|
         LocalTime/timeOfDay $(2017-12-04T00:00:00)
       |]
       let expected = Dh.RecordLit $ HMI.fromList
            [ ("hour", Dh.IntegerLit 0)
            , ("minute", Dh.IntegerLit 0)
            ]
-      normalize expr `shouldBe` expected
+      expr `shouldBe` expected
     it "should handle poorly-typed expressions" $ do
       expr <- parsed parser [i|
         LocalTime/timeOfDay $(2017-12-04T00:00:00Z)
       |]
       shouldBeLeft $ typeOf expr
 
-normalize :: OpenExpr Dh.Src '[DhTime] -> OpenExpr Dh.Src '[DhTime]
-normalize = Dh.normalizeWith normalizer
-
-typeOf :: OpenExpr Dh.Src '[DhTime] -> Either (Dh.TypeError Dh.Src (Open Dh.Src '[DhTime])) (OpenExpr Dh.Src '[DhTime])
+typeOf :: OpenExpr Dh.Src '[DhTime] -> Either (Dh.TypeError Dh.Src (Open '[DhTime])) (OpenExpr Dh.Src '[DhTime])
 typeOf = Dh.typeWithA typer Dh.empty
 
-parser :: OpenParser Dh.Src '[DhTime]
+parser :: OpenParser '[DhTime]
 parser = Dalek.Exts.Time.Parser.parser
 
-typer :: Dh.Typer Dh.Src (Open Dh.Src '[DhTime])
+typer :: Dh.Typer (Open '[DhTime])
 typer = toTyper $ sendTyper Dalek.Exts.Time.TypeCheck.typer
 
-normalizer :: OpenNormalizer Dh.Src '[DhTime]
+normalizer :: OpenNormalizer '[DhTime]
 normalizer = Dalek.Exts.Time.Core.normalizer

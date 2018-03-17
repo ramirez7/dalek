@@ -9,5 +9,5 @@ import           Dalek.Exts.Ord.Double.Core (DhDoubleOrd)
 import           Dalek.Parser
 
 
-parser :: Member DhDoubleOrd fs => OpenParser s fs
+parser :: Member DhDoubleOrd fs => OpenParser fs
 parser = sendParser (reservedEnumF @DhDoubleOrd)

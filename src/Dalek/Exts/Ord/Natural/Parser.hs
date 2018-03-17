@@ -9,5 +9,5 @@ import           Dalek.Exts.Ord.Natural.Core (DhNaturalOrd)
 import           Dalek.Parser
 
 
-parser :: Member DhNaturalOrd fs => OpenParser s fs
+parser :: Member DhNaturalOrd fs => OpenParser fs
 parser = sendParser (reservedEnumF @DhNaturalOrd)

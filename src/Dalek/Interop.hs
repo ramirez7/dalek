@@ -8,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE RankNTypes  #-}
 
 
 -- | Dalek <-> Haskell interop
@@ -33,6 +34,7 @@ module Dalek.Interop
   , optional
   , list
   , vector
+  , seq_
   , unit
   , pair
   , function
@@ -52,6 +54,7 @@ module Dalek.Interop
   , optionalIn
   , listIn
   , vectorIn
+  , seqIn
   , unitIn
   -- * WIP
   , FromDhall (..)
@@ -77,6 +80,7 @@ import qualified Data.Text.Lazy.Builder     as TLB
 import qualified Data.Text.Lazy.Encoding    as TL
 import           Data.Typeable              (Typeable)
 import qualified Data.Vector
+import qualified Data.Sequence
 import           System.IO.Error            (IOError, userError)
 
 import           Dhall                      (Natural)
@@ -90,10 +94,10 @@ import           Dalek.Parser
 import           Dalek.Patterns
 
 input :: forall fs a
-       . (OpenSatisfies Eq Src fs, OpenSatisfies Buildable Src fs)
-      => OpenNormalizer Src fs -- ^ Custom normalizer
-      -> OpenParser Src fs -- ^ Custom parser
-      -> Dh.Typer Src (Open Src fs) -- ^ Custom typer
+       . (OpenSatisfies Eq fs, OpenSatisfies Buildable fs)
+      => OpenNormalizer fs -- ^ Custom normalizer
+      -> OpenParser fs -- ^ Custom parser
+      -> Dh.Typer (Open fs) -- ^ Custom typer
       -> OutputType fs a -- ^ 'OutputType' to unmarshal to
       -> Text -- ^ Dhall program
       -> IO a
@@ -145,7 +149,7 @@ extract ConcreteOutputType{..} = concreteExtract
 
 -- TODO: It would be nice to not destroy all the Notes here, but I don't know how
 annotWith :: forall fs a
-           . OpenSatisfies Buildable Src fs
+           . OpenSatisfies Buildable fs
           => OutputType fs a
           -> OpenExpr Src fs
           -> Maybe (OpenExpr Src fs)
@@ -326,10 +330,7 @@ optional :: OutputType fs a -> OutputType fs (Maybe a)
 optional aTy = ConcreteOutputType {
     concreteExtract = \case
        Dh.OptionalLit _ v ->
-         traverse (concreteExtract aTy) $
-           if Data.Vector.null v
-             then Nothing
-             else Just (Data.Vector.head v)
+         traverse (concreteExtract aTy) v
        _ -> Nothing
   , concreteExpected = Dh.App Dh.Optional (concreteExpected aTy)
 }
@@ -340,9 +341,13 @@ list = fmap Data.Vector.toList . vector
 
 -- | Extract a 'Vector'
 vector :: OutputType fs a -> OutputType fs (Data.Vector.Vector a)
-vector aTy = ConcreteOutputType {
+vector = fmap (Data.Vector.fromList . F.toList) . seq_
+
+-- | Extract a 'Seq'
+seq_ :: OutputType fs a -> OutputType fs (Data.Sequence.Seq a)
+seq_ aTy = ConcreteOutputType {
     concreteExtract = \case
-      Dh.ListLit _ v -> traverse (concreteExtract aTy) v
+      Dh.ListLit _ sq -> traverse (concreteExtract aTy) sq
       _ -> Nothing
   , concreteExpected = Dh.App Dh.List (concreteExpected aTy)
 }
@@ -369,8 +374,8 @@ pair aTy bTy = (,) <$> record "_1" aTy <.> record "_2" bTy
 -- to it and then the result of that will always be able to be extracted with
 -- the given 'OutputType'. If these assumptions are not met, the extracted function
 -- will crash throwing an 'InteropError' at the time it is applied in Haskell.
-function :: (Typeable fs, OpenSatisfies Show Src fs)
-         => OpenNormalizer Src fs
+function :: (Typeable fs, OpenSatisfies Show fs, OpenSatisfies Eq fs)
+         => OpenNormalizer fs
          -> InputType fs a
          -> OutputType fs b
          -> OutputType fs (a -> b)
@@ -383,13 +388,14 @@ data InteropError fs =
     , lamOut :: OpenExpr Src fs
   }
 
-deriving instance (OpenSatisfies Show Src fs) => Show (InteropError fs)
-instance (Typeable fs, OpenSatisfies Show Src fs) => Exception (InteropError fs)
+deriving instance (OpenSatisfies Show fs) => Show (InteropError fs)
+instance (Typeable fs, OpenSatisfies Show fs) => Exception (InteropError fs)
 
 -- | Like 'function', but if the Dhall function fails to run or fails to produce
 -- an unmarshallable value, the function will return 'Left'. Functions extracted
 -- with this 'OutputType' will never crash in Haskell.
-functionEither :: OpenNormalizer Src fs
+functionEither :: OpenSatisfies Eq fs
+               => OpenNormalizer fs
                -> InputType fs a
                -> OutputType fs b
                -> OutputType fs (a -> Either (InteropError fs) b)
@@ -473,12 +479,12 @@ optionalIn :: InputType fs a -> InputType fs (Maybe a)
 optionalIn aTy = InputType {
     embed = \may ->
       Dh.OptionalLit (declared aTy) $
-        fmap (embed aTy) $ Data.Vector.fromList $ F.toList may
+        fmap (embed aTy) may
   , declared = Dh.App Dh.Optional (declared aTy)
 }
 
-vectorIn :: InputType fs a -> InputType fs (Data.Vector.Vector a)
-vectorIn aTy = InputType {
+seqIn :: InputType fs a -> InputType fs (Data.Sequence.Seq a)
+seqIn aTy = InputType {
     embed = \as ->
       Dh.ListLit (Just (declared aTy)) (fmap (embed aTy) as)
   , declared = Dh.App Dh.List (declared aTy)
@@ -490,8 +496,11 @@ unitIn = InputType {
   , declared = Dh.Record HMI.empty
 }
 
+vectorIn :: InputType fs a -> InputType fs (Data.Vector.Vector a)
+vectorIn aTy = Data.Sequence.fromList . Data.Vector.toList  >$< seqIn aTy
+
 listIn :: InputType fs a -> InputType fs [a]
-listIn aTy = Data.Vector.fromList >$< vectorIn aTy
+listIn aTy = Data.Sequence.fromList >$< seqIn aTy
 
 -- | WIP: Equivalent of dhall's 'Interpret' type class
 class FromDhall fs a where

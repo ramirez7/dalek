@@ -31,7 +31,7 @@ toCmp = \case
   DhNaturalGT -> (>)
   DhNaturalGTE -> (>=)
 
-normalizer :: Member DhNaturalOrd fs => OpenNormalizer s fs
+normalizer :: Member DhNaturalOrd fs => OpenNormalizer fs
 normalizer = \case
   Apps [E dhOrd, Dh.NaturalLit x, Dh.NaturalLit y] -> Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing

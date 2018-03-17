@@ -34,7 +34,7 @@ toCmp = \case
   DhUTCTimeGT -> (>)
   DhUTCTimeGTE -> (>=)
 
-normalizer :: Members '[DhUTCTimeOrd, DhTime] as => OpenNormalizer s as
+normalizer :: Members '[DhUTCTimeOrd, DhTime] fs => OpenNormalizer fs
 normalizer = \case
   Apps [E dhOrd, E (DhUTCTimeLit x), E (DhUTCTimeLit y)] ->
     Just $ Dh.BoolLit $ (toCmp dhOrd) x y

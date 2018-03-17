@@ -7,6 +7,7 @@
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE ViewPatterns       #-}
 
 -- TODO: Map + Rolling(?)
 -- TODO: Extensible with Rec and Const and stuff
@@ -20,6 +21,7 @@ import           Data.Text.Buildable (Buildable (..))
 import           Dalek.Core
 import           Dalek.Patterns
 import qualified Dhall.Core          as Dh
+import Dhall.Core (denote)
 
 import           Dalek.Orphans       ()
 
@@ -37,13 +39,16 @@ data DhMap expr =
   | DhMapFromList
   deriving (Eq, Ord, Show)
 
-normalizer :: (Ord s, Ord (Open s fs), Member DhMap fs) => OpenNormalizer s fs
+normalizer :: (Ord (Open fs), Member DhMap fs) => OpenNormalizer fs
 normalizer = \case
   E DhMapTy -> Nothing
-  Apps [E DhMapEmpty, kty, vty] -> Just $ sendEmbed $ DhMapLit kty vty mempty
-  Apps [E DhMapEmpty, kty, vty, k, v] -> Just $ sendEmbed $ DhMapLit kty vty (M.singleton k v)
-  Apps [E DhMapLookup, _, _, k, E DhMapLit{..}] -> Just $ maybe (Dh.OptionalLit _mapValTy mempty) (Dh.OptionalLit _mapValTy . pure) $ M.lookup k _mapLit
-  Apps [E DhMapInsert, _, _, k, v, E m@DhMapLit{_mapLit=curr}] -> Just $ sendEmbed $ m { _mapLit = M.insert k v curr }
+  Apps [E DhMapEmpty, denote -> kty, denote -> vty] ->
+    Just $ sendEmbed $ DhMapLit kty vty mempty
+  Apps [E DhMapEmpty, denote -> kty, denote -> vty, denote -> k, denote -> v] ->
+    Just $ sendEmbed $ DhMapLit kty vty (M.singleton k v)
+  Apps [E DhMapLookup, _, _, denote -> k, E DhMapLit{..}] ->
+    Just $ maybe (Dh.OptionalLit (denote _mapValTy) Nothing) (Dh.OptionalLit (denote _mapValTy) . pure . denote) $ M.lookup k _mapLit
+  Apps [E DhMapInsert, _, _, denote -> k, denote -> v, E m@DhMapLit{_mapLit=curr}] -> Just $ sendEmbed $ m { _mapLit = M.insert k v curr }
   Apps [E DhMapFromList, _, _, Dh.ListLit _ _] -> undefined -- TODO
   _ -> Nothing
 

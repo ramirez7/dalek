@@ -21,23 +21,23 @@ import           Data.Open.Union
 -- OpenUnion as -> Expr s (OpenUnion as)
 -- f (OpenExpr s fs) -> OpenExpr s fs
 -- OpenTyper s (Union fs) fs ~ Typer
-type OpenTyper s f fs = f (OpenExpr s fs) -> OpenExpr s fs
+type OpenTyper f fs = forall s. f (OpenExpr X fs) -> OpenExpr s fs
 
-type OpenTypeError s fs = Dh.TypeError s (Open s fs)
+type OpenTypeError s fs = Dh.TypeError s (Open fs)
 -- TODO: Open type should be a Typer alias. PartialTyper or smth should be this one
 
-typerUnion :: OpenTyper s f ftarget -> OpenTyper s (Union fs) ftarget -> OpenTyper s (Union (f ': fs)) ftarget
+typerUnion :: OpenTyper f ftarget -> OpenTyper (Union fs) ftarget -> OpenTyper (Union (f ': fs)) ftarget
 typerUnion otf otfs = \uffs -> case decomp uffs of
   Right f -> otf f
   Left fs -> otfs fs
 
-toTyper :: OpenTyper s (Union fs) fs -> Dh.Typer s (Open s fs)
+toTyper :: OpenTyper (Union fs) fs -> Dh.Typer (Open fs)
 toTyper = getOp . contramap unRec . Op
 
-sendTyper :: OpenTyper s f ftarget -> OpenTyper s (Union '[f]) ftarget
+sendTyper :: OpenTyper f ftarget -> OpenTyper (Union '[f]) ftarget
 sendTyper = (. extract)
 
-xTyper :: OpenTyper s (C X) fs
+xTyper :: OpenTyper (C X) fs
 xTyper = absurd . unC
 
 -- TODO: Shake out fixity/order of operations of PiBinding + the arrows

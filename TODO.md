@@ -45,3 +45,11 @@
 * `functionEither` happy path
 * `function` and `functionEither` failure
 * `ignoringUnclosed`
+
+# Upstream
+## Ready
+* TypeLits (`judgmentallyEqual` might already satisfy?)
+* Type families (add `typeWithAN`)
+* Remove exposed `s`. Dalek doesn't need it anymore
+## Not Ready
+* Newtype the InsOrd map to allow for more instances (e.g. `Ord`)

@@ -58,18 +58,18 @@ import qualified Text.Parser.Token       as TP
 import qualified Text.Trifecta.Parser    as Tri
 import qualified Text.Trifecta.Result    as Tri
 
-type OpenParser s fs = Dh.Parser (Open s fs)
+type OpenParser fs = Dh.Parser (Open fs)
 
 -- | Lift a 'Dh.Parser' for a single member of an 'Open' to an 'OpenParser'
-sendParser :: forall fs f s. Member f fs => Dh.Parser (f (OpenExpr s fs)) -> OpenParser s fs
+sendParser :: forall fs f. Member f fs => Dh.Parser (f (OpenExpr X fs)) -> OpenParser fs
 sendParser = fmap (Rec . inj)
 
 -- | Run an 'OpenParser' on a 'String'
-openParseStr :: forall fs. OpenParser Dh.Src fs -> String -> Tri.Result (OpenExpr Dh.Src fs)
+openParseStr :: forall fs. OpenParser fs -> String -> Tri.Result (OpenExpr Dh.Src fs)
 openParseStr p s = Tri.parseString (Dh.unParser $ Dh.exprA p) mempty s
 
 -- | Parse lifted 'X'
-xParser :: Member (C X) fs => OpenParser s fs
+xParser :: Member (C X) fs => OpenParser fs
 xParser = empty
 
 -------------------------------------------------------------------------------

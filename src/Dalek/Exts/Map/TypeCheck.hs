@@ -13,7 +13,7 @@ import           Dalek.Core
 import           Dalek.Exts.Map.Core
 import           Dalek.TypeCheck
 
-typer :: (Member DhMap fs) => OpenTyper s DhMap fs
+typer :: (Member DhMap fs) => OpenTyper DhMap fs
 typer = \case
   DhMapLit{..} -> mkMapTy _mapKeyTy _mapValTy
   DhMapTy -> Dh.Const Dh.Type
@@ -42,5 +42,5 @@ typer = \case
               (mkMapTy "kty" "vty"))))))
   DhMapFromList -> undefined
 
-mkMapTy :: (Member DhMap fs) => OpenExpr s fs -> OpenExpr s fs -> OpenExpr s fs
-mkMapTy k v = (Dh.App (Dh.App (sendEmbed DhMapTy) k) v)
+mkMapTy :: (Member DhMap fs) => OpenExpr s1 fs -> OpenExpr s2 fs -> OpenExpr t fs
+mkMapTy k v = (Dh.App (Dh.App (sendEmbed DhMapTy) (Dh.denote k)) (Dh.denote v))

@@ -30,7 +30,7 @@ toCmp = \case
   DhIntegerGT -> (>)
   DhIntegerGTE -> (>=)
 
-normalizer :: Member DhIntegerOrd fs => OpenNormalizer s fs
+normalizer :: Member DhIntegerOrd fs => OpenNormalizer fs
 normalizer = \case
   Apps [E dhOrd, Dh.IntegerLit x, Dh.IntegerLit y] -> Just $ Dh.BoolLit $ (toCmp dhOrd) x y
   _ -> Nothing

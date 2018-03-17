@@ -31,7 +31,7 @@ data DhTime expr =
   | DhLocalTimeTimeOfDay
   deriving (Eq, Ord, Show)
 
-normalizer :: Member DhTime fs => OpenNormalizer s fs
+normalizer :: Member DhTime fs => OpenNormalizer fs
 normalizer = \case
   Apps [E DhLocalTimeDayOfWeek, E (DhLocalTimeLit lt)] ->
     let (_, _, dayOfWeek) = toWeekDate (localDay lt)

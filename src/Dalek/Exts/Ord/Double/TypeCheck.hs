@@ -12,6 +12,6 @@ import           Dalek.Core
 import           Dalek.Exts.Ord.Double.Core
 import           Dalek.TypeCheck
 
-typer :: (Member DhDoubleOrd fs) => OpenTyper s DhDoubleOrd fs
+typer :: (Member DhDoubleOrd fs) => OpenTyper DhDoubleOrd fs
 typer = \case
   _ -> (Dh.Pi "_" Dh.Double (Dh.Pi "_" Dh.Double Dh.Bool))

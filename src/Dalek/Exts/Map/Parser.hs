@@ -10,7 +10,7 @@ import           Dalek.Core
 import           Dalek.Exts.Map.Core (DhMap (..))
 import           Dalek.Parser
 
-parser :: (Buildable (Open s fs), Member DhMap fs) => OpenParser s fs
+parser :: (Buildable (Open fs), Member DhMap fs) => OpenParser fs
 parser = sendParser $ asum $ fmap (reservedF @DhMap) $
   [ DhMapEmpty
   , DhMapSingleton

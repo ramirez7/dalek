@@ -53,7 +53,9 @@ import           Data.Open.Union
 import           Data.Text.Buildable       (Buildable (..))
 
 import qualified Dhall.Core                as Dh
-import           Dhall.TypeCheck           (X (..))
+
+-- TODO: Re-export this when it has an Ord instance upstream.
+--import           Dhall.TypeCheck           (X (..))
 
 -- TODO: IDEA: :git ghci command lol
 {-
@@ -67,6 +69,21 @@ Id (Dh.Normalizer Int Bool) :: *
 -}
 
 
+-- | Dalek-owned Void
+newtype X = X { absurd :: forall a . a }
+
+instance Show X where
+    show = absurd
+
+instance Eq X where
+  _ == _ = True
+
+instance Ord X where
+  compare _ _ = EQ
+
+instance Buildable X where
+    build = absurd
+
 -- | Inspired by the "Term trick":
 --
 -- http://blog.sumtypeofway.com/recursion-schemes-part-41-2-better-living-through-base-functors/
@@ -76,20 +93,20 @@ Id (Dh.Normalizer Int Bool) :: *
 --
 -- This encoding allows for extensions to have recursive structures of extended Dhall ASTs
 -- (for instance, containers like Map/Seq or custom AST syntax)
-newtype Rec s f = Rec { unRec :: f (Dh.Expr s (Rec s f)) }
+newtype Rec f = Rec { unRec :: f (Dh.Expr X (Rec f)) }
 
-type Open s fs = Rec s (Union fs)
-type OpenExpr s fs = Dh.Expr s (Open s fs)
+type Open (fs :: [* -> *]) = Rec (Union fs)
+type OpenExpr s (fs :: [* -> *]) = Dh.Expr s (Open fs)
 
-type OpenNormalizer s (fs :: [* -> *]) = Dh.Normalizer s (Open s fs)
+type OpenNormalizer (fs :: [* -> *]) = Dh.Normalizer (Open fs)
 
 infixl 3 .<|>
 -- | Normalizer alternative. Prefers the left-hand side.
-(.<|>) :: Dh.Normalizer s a -> Dh.Normalizer s a -> Dh.Normalizer s a
+(.<|>) :: Dh.Normalizer a -> Dh.Normalizer a -> Dh.Normalizer a
 nl .<|> nr = runMaybeT (MaybeT nl <|> MaybeT nr)
 
 -- | Embed a value into an 'OpenExpr'
-sendEmbed :: forall fs s f. Member f fs => f (OpenExpr s fs) -> OpenExpr s fs
+sendEmbed :: forall fs s f. Member f fs => f (OpenExpr X fs) -> OpenExpr s fs
 sendEmbed a = Dh.Embed $ Rec $ inj a
 
 -- | Filter terms passed to a 'Normalizer' so that no unclosed terms (i.e.
@@ -97,7 +114,7 @@ sendEmbed a = Dh.Embed $ Rec $ inj a
 -- ensure that 'Embed' terms do not capture unclosed Dhall expressions. If this
 -- happens, those variables will never be resolved as 'dhall' does not
 -- perform substitution on 'Embed' terms.
-ignoringUnclosed :: Dh.Normalizer s a -> Dh.Normalizer s a
+ignoringUnclosed :: Dh.Normalizer a -> Dh.Normalizer a
 ignoringUnclosed n e = do
   guard (isClosedExpression e)
   n e
@@ -106,14 +123,10 @@ ignoringUnclosed n e = do
 newtype C c a = C { unC :: c } deriving (Functor, Eq, Ord, Buildable, Show)
 
 -- | Normalizer for lifted 'X'
-xNormalizer :: Member (C X) fs => OpenNormalizer s fs
+xNormalizer :: Member (C X) fs => OpenNormalizer fs
 xNormalizer = const Nothing
 --------------------------------------------------------------------------------
 -- Note stuff
-
--- Will need some instances on those fs to do this
-unNoteOpen :: OpenExpr s fs -> OpenExpr X fs
-unNoteOpen = undefined
 
 -- | Remove all 'Note's from the AST
 unNote :: Dh.Expr s a -> Dh.Expr t a
@@ -255,18 +268,18 @@ isClosedExpression = \case
 
 type IsOpen s fs expr = expr ~ OpenExpr s fs
 
-type OpenSatisfies (c :: * -> Constraint) s fs = c (DalekUnion fs (OpenExpr s fs))
+type OpenSatisfies (c :: * -> Constraint) fs = c (DalekUnion fs (OpenExpr X fs))
 
-instance Show (DalekUnion fs (OpenExpr s fs)) => Show (Open s fs) where
+instance Show (DalekUnion fs (OpenExpr X fs)) => Show (Open fs) where
   show (Rec x) = show (DalekUnion x)
 
-instance Eq (DalekUnion fs (OpenExpr s fs)) => Eq (Open s fs) where
+instance Eq (DalekUnion fs (OpenExpr X fs)) => Eq (Open fs) where
   (Rec x) == (Rec y) = DalekUnion x == DalekUnion y
 
-instance Ord (DalekUnion fs (OpenExpr s fs)) => Ord (Open s fs) where
+instance Ord (DalekUnion fs (OpenExpr X fs)) => Ord (Open fs) where
   compare (Rec x) (Rec y) = compare (DalekUnion x) (DalekUnion y)
 
-instance Buildable (DalekUnion fs (OpenExpr s fs)) => Buildable (Open s fs) where
+instance Buildable (DalekUnion fs (OpenExpr X fs)) => Buildable (Open fs) where
   build (Rec x) = build (DalekUnion x)
 
 -- | Newtype wrapper 'OpenUnion' so we can get some non-orphan instances we need

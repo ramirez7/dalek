@@ -12,6 +12,6 @@ import           Dalek.Core
 import           Dalek.Exts.Ord.Integer.Core
 import           Dalek.TypeCheck
 
-typer :: (Member DhIntegerOrd fs) => OpenTyper s DhIntegerOrd fs
+typer :: (Member DhIntegerOrd fs) => OpenTyper DhIntegerOrd fs
 typer = \case
   _ -> (Dh.Pi "_" Dh.Integer (Dh.Pi "_" Dh.Integer Dh.Bool))

@@ -12,7 +12,7 @@ import           Dalek.Core
 import           Dalek.Exts.Time.Core
 import           Dalek.TypeCheck
 
-typer :: Member DhTime fs => OpenTyper s DhTime fs
+typer :: Member DhTime fs => OpenTyper DhTime fs
 typer = \case
   DhUTCTime -> Dh.Const Dh.Type
   DhUTCTimeLit _ -> sendEmbed DhUTCTime

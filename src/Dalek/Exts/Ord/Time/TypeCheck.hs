@@ -13,6 +13,6 @@ import           Dalek.Exts.Ord.Time.Core
 import           Dalek.Exts.Time.Core
 import           Dalek.TypeCheck
 
-typer :: (Member DhTime fs) => OpenTyper s DhUTCTimeOrd fs
+typer :: (Member DhTime fs) => OpenTyper DhUTCTimeOrd fs
 typer = \case
   _ -> Dh.Pi "_" (sendEmbed DhUTCTime) (Dh.Pi "_" (sendEmbed DhUTCTime) Dh.Bool)

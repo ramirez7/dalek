@@ -22,6 +22,7 @@ import           Data.Functor.Apply  ((<.>))
 import           Data.Text.Buildable
 import           Data.Text.Lazy      (Text)
 import qualified Data.Vector         as V
+import qualified Data.Foldable as F
 
 import qualified Dhall.Core          as Dh
 import           Dhall.Parser        (Src)
@@ -37,13 +38,13 @@ type SpecExts = '[DhExistentialList]
 specInput :: OutputType SpecExts a -> Text -> IO a
 specInput = input specNormalizer specParser specTyper
 
-specNormalizer :: OpenNormalizer s SpecExts
+specNormalizer :: OpenNormalizer SpecExts
 specNormalizer = exListNormalizer
 
-specParser :: OpenParser s SpecExts
+specParser :: OpenParser SpecExts
 specParser = exListParser
 
-specTyper :: Dh.Typer s (Open s SpecExts)
+specTyper :: Dh.Typer (Open SpecExts)
 specTyper = toTyper $ sendTyper exListTyper
 
 spec :: Spec
@@ -121,8 +122,8 @@ data ExistentialList fs = ExistentialList {
   , exListVal :: [OpenExpr Src fs]
 }
 
-deriving instance OpenSatisfies Show Src fs => Show (ExistentialList fs)
-deriving instance OpenSatisfies Eq Src fs => Eq (ExistentialList fs)
+deriving instance OpenSatisfies Show fs => Show (ExistentialList fs)
+deriving instance OpenSatisfies Eq fs => Eq (ExistentialList fs)
 
 elTy :: Member DhExistentialList fs => OutputType fs (ExistentialList fs)
 elTy = forAll (Dh.Const Dh.Type) $ \ty ->
@@ -130,7 +131,7 @@ elTy = forAll (Dh.Const Dh.Type) $ \ty ->
           concreteExpected = Dh.App (sendEmbed DhExistentialListType) ty
         , concreteExtract = \case
             Apps [E DhExistentialList, Dh.ListLit _ xs] ->
-              Just $ ExistentialList ty (V.toList xs)
+              Just $ ExistentialList ty (F.toList xs)
             _ -> Nothing
       }
 
@@ -144,13 +145,13 @@ instance Buildable (DhExistentialList expr) where
     DhExistentialList -> "Existential/List"
     DhExistentialListType -> "Existential/List/Type"
 
-exListNormalizer :: Member DhExistentialList fs => OpenNormalizer s fs
+exListNormalizer :: Member DhExistentialList fs => OpenNormalizer fs
 exListNormalizer = const Nothing
 
-exListParser :: Member DhExistentialList fs => OpenParser s fs
+exListParser :: Member DhExistentialList fs => OpenParser fs
 exListParser = sendParser $ reservedEnumF @DhExistentialList
 
-exListTyper :: Member DhExistentialList fs => OpenTyper s DhExistentialList fs
+exListTyper :: Member DhExistentialList fs => OpenTyper DhExistentialList fs
 exListTyper = \case
   DhExistentialList ->
         ("ty" :. Dh.Const Dh.Type)

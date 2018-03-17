@@ -17,7 +17,7 @@ import           Dalek.Parser
 -- So we newtype wrap ourselves..I wonder why Dhall's parser didn't newtype derive
 -- LookAheadParsing. Maybe because it didn't need it?
 -- Member DhUTCTimeOrd fs => OpenParser s fs
-parser :: Member DhTime fs => OpenParser s fs
+parser :: Member DhTime fs => OpenParser fs
 parser = sendParser $ TP.choice $
     [ TP.try $ quasiQuotes $ Dh.Parser $ fmap DhUTCTimeLit TP.utcTime
     , TP.try $ quasiQuotes $ Dh.Parser $ fmap DhLocalTimeLit TP.localTime
